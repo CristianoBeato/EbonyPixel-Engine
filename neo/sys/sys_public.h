@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2012 Robert Beckebans
+Copyright (C) 2016-2018 Cristiano Beato.
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -30,7 +31,13 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SYS_PUBLIC__
 #define __SYS_PUBLIC__
 
-#include "../idlib/CmdArgs.h"
+#include "idlib/CmdArgs.h"
+#include <SDL.h>
+
+struct glimpParms_t;
+struct vidMode_t;
+class btFileSysCommon;
+class btGlimp;
 
 /*
 ===============================================================================
@@ -417,6 +424,13 @@ enum keyNum_t
 	K_LAST_KEY
 };
 
+enum sysFolder_t
+{
+	FOLDER_ERROR = -1,
+	FOLDER_NO = 0,
+	FOLDER_YES = 1
+};
+
 struct sysEvent_t
 {
 	sysEventType_t	evType;
@@ -473,146 +487,37 @@ struct sysMemoryStats_t
 };
 
 // typedef unsigned long address_t; // DG: this isn't even used
-
-void			Sys_Init();
-void			Sys_Shutdown();
+void			Sys_Init(void);
+void			Sys_Shutdown(void);
+void			Sys_Quit(void);
 void			Sys_Error( const char* error, ... );
 const char* 	Sys_GetCmdLine();
 // DG: Sys_ReLaunch() doesn't need any options (and the old way is painful for POSIX systems)
 void			Sys_ReLaunch();
 // DG end
+
 void			Sys_Launch( const char* path, idCmdArgs& args,  void* launchData, unsigned int launchDataSize );
 void			Sys_SetLanguageFromSystem();
 const char* 	Sys_DefaultLanguage();
-void			Sys_Quit();
-
-bool			Sys_AlreadyRunning();
-
-// note that this isn't journaled...
-char* 			Sys_GetClipboardData();
-void			Sys_SetClipboardData( const char* string );
-
+bool			Sys_AlreadyRunning(void);
+//void			Sys_ShowConsole( int visLevel, bool quitOnClose );
+void			Sys_SetErrorText(const char* buf);
 // will go to the various text consoles
 // NOT thread safe - never use in the async paths
 void			Sys_Printf( VERIFY_FORMAT_STRING const char* msg, ... );
-
 // guaranteed to be thread-safe
 void			Sys_DebugPrintf( VERIFY_FORMAT_STRING const char* fmt, ... );
 void			Sys_DebugVPrintf( const char* fmt, va_list arg );
-
+// know early if we are performing a fatal error shutdown so the error message doesn't get lost
+void			Sys_SetFatalError(const char* error);
+const char*		Sys_ConsoleInput(void);
 // a decent minimum sleep time to avoid going below the process scheduler speeds
 #define			SYS_MINSLEEP	20
 
-// allow game to yield CPU time
-// NOTE: due to SYS_MINSLEEP this is very bad portability karma, and should be completely removed
-void			Sys_Sleep( int msec );
-
-// Sys_Milliseconds should only be used for profiling purposes,
-// any game related timing information should come from event timestamps
-int				Sys_Milliseconds();
-uint64			Sys_Microseconds();
-
-// for accurate performance testing
-double			Sys_GetClockTicks();
-double			Sys_ClockTicksPerSecond();
-
-// returns a selection of the CPUID_* flags
-cpuid_t			Sys_GetProcessorId();
-const char* 	Sys_GetProcessorString();
-
-// returns true if the FPU stack is empty
-bool			Sys_FPU_StackIsEmpty();
-
-// empties the FPU stack
-void			Sys_FPU_ClearStack();
-
-// returns the FPU state as a string
-const char* 	Sys_FPU_GetState();
-
-// enables the given FPU exceptions
-void			Sys_FPU_EnableExceptions( int exceptions );
-
-// sets the FPU precision
-void			Sys_FPU_SetPrecision( int precision );
-
-// sets the FPU rounding mode
-void			Sys_FPU_SetRounding( int rounding );
-
-// sets Flush-To-Zero mode (only available when CPUID_FTZ is set)
-void			Sys_FPU_SetFTZ( bool enable );
-
-// sets Denormals-Are-Zero mode (only available when CPUID_DAZ is set)
-void			Sys_FPU_SetDAZ( bool enable );
-
-// returns amount of drive space in path
-int				Sys_GetDriveFreeSpace( const char* path );
-
-// returns amount of drive space in path in bytes
-int64			Sys_GetDriveFreeSpaceInBytes( const char* path );
-
-// returns memory stats
-void			Sys_GetCurrentMemoryStatus( sysMemoryStats_t& stats );
-void			Sys_GetExeLaunchMemoryStatus( sysMemoryStats_t& stats );
-
-// lock and unlock memory
-bool			Sys_LockMemory( void* ptr, int bytes );
-bool			Sys_UnlockMemory( void* ptr, int bytes );
-
-// set amount of physical work memory
-void			Sys_SetPhysicalWorkMemory( int minBytes, int maxBytes );
-
-// DLL loading, the path should be a fully qualified OS path to the DLL file to be loaded
-
-// RB: 64 bit fixes, changed int to intptr_t
-intptr_t		Sys_DLL_Load( const char* dllName );
-void* 			Sys_DLL_GetProcAddress( intptr_t dllHandle, const char* procName );
-void			Sys_DLL_Unload( intptr_t dllHandle );
-// RB end
-
-// event generation
-void			Sys_GenerateEvents();
-sysEvent_t		Sys_GetEvent();
-void			Sys_ClearEvents();
-
-// input is tied to windows, so it needs to be started up and shut down whenever
-// the main window is recreated
-void			Sys_InitInput();
-void			Sys_ShutdownInput();
-
-// keyboard input polling
-int				Sys_PollKeyboardInputEvents();
-int				Sys_ReturnKeyboardInputEvent( const int n, int& ch, bool& state );
-void			Sys_EndKeyboardInputEvents();
-
-// DG: currently this is only used by idKeyInput::LocalizedKeyName() for !windows
-#ifndef _WIN32
-// return a human readable name for the key in the current keyboard layout (keynum is a directinput scancode)
-const char*		Sys_GetKeyName( keyNum_t keynum );
-#endif
-// DG end
-
-// mouse input polling
 static const int MAX_MOUSE_EVENTS = 256;
-int				Sys_PollMouseInputEvents( int mouseEvents[MAX_MOUSE_EVENTS][2] );
-
-// joystick input polling
-void			Sys_SetRumble( int device, int low, int hi );
-int				Sys_PollJoystickInputEvents( int deviceNum );
-int				Sys_ReturnJoystickInputEvent( const int n, int& action, int& value );
-void			Sys_EndJoystickInputEvents();
-
-// when the console is down, or the game is about to perform a lengthy
-// operation like map loading, the system can release the mouse cursor
-// when in windowed mode
-void			Sys_GrabMouseCursor( bool grabIt );
-
-void			Sys_ShowWindow( bool show );
-bool			Sys_IsWindowVisible();
-void			Sys_ShowConsole( int visLevel, bool quitOnClose );
 
 // This really isn't the right place to have this, but since this is the 'top level' include
 // and has a function signature with 'FILE' in it, it kinda needs to be here =/
-
 // RB begin
 #if defined(_WIN32)
 typedef HANDLE idFileHandle;
@@ -621,17 +526,9 @@ typedef FILE* idFileHandle;
 #endif
 // RB end
 
-
-ID_TIME_T		Sys_FileTimeStamp( idFileHandle fp );
 // NOTE: do we need to guarantee the same output on all platforms?
 const char* 	Sys_TimeStampToStr( ID_TIME_T timeStamp );
 const char* 	Sys_SecToStr( int sec );
-
-const char* 	Sys_DefaultBasePath();
-const char* 	Sys_DefaultSavePath();
-
-// know early if we are performing a fatal error shutdown so the error message doesn't get lost
-void			Sys_SetFatalError( const char* error );
 
 // Execute the specified process and wait until it's done, calling workFn every waitMS milliseconds.
 // If showOutput == true, std IO from the executed process will be output to the console.
@@ -652,6 +549,8 @@ bool Sys_Exec(	const char* appPath, const char* workingPath, const char* args,
 #define ID_LANG_GERMAN		"german"
 #define ID_LANG_SPANISH		"spanish"
 #define ID_LANG_JAPANESE	"japanese"
+#define ID_LANG_PORTUGUESE  "portuguese"
+
 int Sys_NumLangs();
 const char* Sys_Lang( int idx );
 
@@ -770,27 +669,118 @@ provides full *Joy Pad* support (the most common device, these days).
 class idJoystick
 {
 public:
-	virtual			~idJoystick() { }
+	idJoystick(void) {}
+	virtual			~idJoystick(void) { }
 	
-	virtual bool	Init()
+	virtual bool	Init(void)
 	{
 		return false;
 	}
-	virtual void	Shutdown() { }
-	virtual void	Deactivate() { }
+	virtual void	Shutdown(void) { }
+	virtual void	Deactivate(void) { }
 	virtual void	SetRumble( int deviceNum, int rumbleLow, int rumbleHigh ) { }
 	virtual int		PollInputEvents( int inputDeviceNum )
 	{
 		return 0;
 	}
+
 	virtual int		ReturnInputEvent( const int n, int& action, int& value )
 	{
 		return 0;
 	}
+
 	virtual void	EndInputEvents() { }
 };
 
 
+// Beato Begin
+
+class btMessageBox
+{
+public:
+	btMessageBox(void)
+	{
+		msgdata = nullptr;
+		button = -1;
+	}
+
+	btMessageBox(const SDL_MessageBoxFlags flag, const char *title, const char *message)
+	{
+		SDL_MessageBoxButtonData *buttons;
+		int numButtons = 1;
+		button = -1;
+		success = 0;
+
+		//SDL_malloc is more fast than new
+		msgdata = (SDL_MessageBoxData*)SDL_malloc(sizeof(SDL_MessageBoxData));
+
+		msgdata->flags = flag;
+		msgdata->title = title;
+		msgdata->message = message;
+		msgdata->window = NULL; //set null be defatlt
+
+		if (flag != SDL_MESSAGEBOX_INFORMATION)
+		{
+			numButtons = 2;
+			buttons = new SDL_MessageBoxButtonData[2];
+			buttons[0] =
+			{
+				SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT,
+				0,
+				"OK"
+			};
+
+			buttons[1] =
+			{
+				SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT,
+				1,
+				"Cancel"
+			};
+		}
+		else
+		{
+			buttons = new SDL_MessageBoxButtonData
+			{
+				SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT,
+				0,
+				"OK"
+			};
+		}
+		msgdata->numbuttons = numButtons;
+		msgdata->buttons = buttons;
+	}
+
+	~btMessageBox(void)
+	{
+		Clear();
+	}
+
+	void	Clear(void)
+	{
+		if (msgdata != nullptr)
+		{
+			SDL_free(msgdata);
+			msgdata = nullptr;
+		}
+	}
+
+	void	SetParent(SDL_Window *window)
+	{
+		this->msgdata->window = window;
+	}
+
+	void	Show(void)
+	{
+		SDL_assert(msgdata != nullptr);
+		success = SDL_ShowMessageBox(msgdata, &button);
+	}
+
+private:
+	int					button;
+	int					success;
+	SDL_MessageBoxData	*msgdata;
+};
+// Beato End
 
 /*
 ==============================================================
@@ -803,33 +793,152 @@ public:
 class idSys
 {
 public:
+
+	//Beato: portable functions are now inside system hadler
 	virtual void			DebugPrintf( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
 	virtual void			DebugVPrintf( const char* fmt, va_list arg ) = 0;
 	
+	// allow game to yield CPU time
+	// NOTE: due to SYS_MINSLEEP this is very bad portability karma, and should be completely removed
+	virtual void			Sleep(int msec) =0;
+
+	// Sys_Milliseconds should only be used for profiling purposes,
+	// any game related timing information should come from event timestamps
+	virtual int				Milliseconds() =0;
+	virtual uint64			Microseconds() =0;
+
+	// for accurate performance testing
 	virtual double			GetClockTicks() = 0;
 	virtual double			ClockTicksPerSecond() = 0;
+
+	virtual void			CPUCount(int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCPUPackages) = 0;
 	virtual cpuid_t			GetProcessorId() = 0;
 	virtual const char* 	GetProcessorString() = 0;
+
 	virtual const char* 	FPU_GetState() = 0;
 	virtual bool			FPU_StackIsEmpty() = 0;
 	virtual void			FPU_SetFTZ( bool enable ) = 0;
 	virtual void			FPU_SetDAZ( bool enable ) = 0;
-	
 	virtual void			FPU_EnableExceptions( int exceptions ) = 0;
-	
+	virtual void			FPU_SetPrecision(int precision) = 0;
+
+
+	// returns amount of drive space in path
+	virtual int				GetDriveFreeSpace(const char* path) = 0;
+
+	// returns amount of drive space in path in bytes
+	virtual int64			GetDriveFreeSpaceInBytes(const char* path) = 0;
+	virtual ID_TIME_T		FileTimeStamp(idFileHandle fp) = 0;
+	virtual void			Mkdir(const char* path) = 0;
+	virtual bool			Rmdir(const char* path) = 0;
+	virtual bool			IsFileWritable(const char* path) = 0;
+	// returns FOLDER_YES if the specified path is a folder
+	virtual sysFolder_t		IsFolder(const char* path) = 0;
+#if 0
+	// use fs_debug to verbose Sys_ListFiles
+	// returns -1 if directory was not found (the list is cleared)
+	virtual int				ListFiles(const char* directory, const char* extension, idList<class idStr>& list) = 0;
+#endif // 0
+	virtual btFileSysCommon GetFSHandler(void) = 0;
+	virtual const char* 	EXEPath(void) = 0;
+	virtual const char* 	CWD(void) = 0;
+	virtual const char* 	LaunchPath(void) = 0;
+	virtual const char* 	DefaultBasePath(void) = 0;
+	virtual const char* 	DefaultSavePath(void) = 0;
+
+	virtual void			SetPhysicalWorkMemory(int minBytes, int maxBytes) = 0;
 	virtual bool			LockMemory( void* ptr, int bytes ) = 0;
 	virtual bool			UnlockMemory( void* ptr, int bytes ) = 0;
 	
-	virtual int				DLL_Load( const char* dllName ) = 0;
-	virtual void* 			DLL_GetProcAddress( int dllHandle, const char* procName ) = 0;
-	virtual void			DLL_Unload( int dllHandle ) = 0;
+#if 0
+	virtual void*			DLL_Load( const char* dllName ) = 0;
+	virtual void* 			DLL_GetProcAddress(void* dllHandle, const char* procName ) = 0;
+	virtual void			DLL_Unload(void* dllHandle ) = 0;
 	virtual void			DLL_GetFileName( const char* baseName, char* dllName, int maxLength ) = 0;
+#else
+	virtual void*			DLL_Load(const char* dllName) { return NULL; };
+	virtual void* 			DLL_GetProcAddress(void* dllHandle, const char* procName) { return NULL; };
+	virtual void			DLL_Unload(void* dllHandle) {};
+	virtual void			DLL_GetFileName(const char* baseName, char* dllName, int maxLength) {};
+#endif
 	
+	// when the console is down, or the game is about to perform a lengthy
+	// operation like map loading, the system can release the mouse cursor
+	// when in windowed mode
+	virtual void			GrabMouseCursor(bool grabIt) =0;
+
+	virtual void			ShowWindow(bool show) =0;
+	virtual bool			IsWindowVisible(void) =0;
+
+#if 0
+	// the number of displays can be found by itterating this until it returns false
+	// displayNum is the 0 based value passed to EnumDisplayDevices(), you must add
+	// 1 to this to get an r_fullScreen value.
+	virtual bool			GetModeListForDisplay(const int displayNum, idList<vidMode_t>& modeList) = 0;
+#endif  
+	virtual btGlimp			GetGlimpHandle(void) = 0;
+
+	// DG: R_GetModeListForDisplay is called before GLimp_Init(), but SDL needs SDL_Init() first.
+	// So add PreInit for platforms that need it, others can just stub it.
+	virtual void			GLimpPreInit(void) = 0;
+
+	// If the desired mode can't be set satisfactorily, false will be returned.
+	// If succesful, sets glConfig.nativeScreenWidth, glConfig.nativeScreenHeight, and glConfig.pixelAspect
+	// The renderer will then reset the glimpParms to "safe mode" of 640x480
+	// fullscreen and try again.  If that also fails, the error will be fatal.
+	virtual bool			GLimpInit(glimpParms_t parms) = 0;
+
+	// will set up gl up with the new parms
+	virtual bool			GLimpSetScreenParms(glimpParms_t parms) = 0;
+
+	// Destroys the rendering context, closes the window, resets the resolution,
+	// and resets the gamma ramps.
+	virtual void			GLimpShutdown(void) = 0;
+
+	// Sets the hardware gamma ramps for gamma and brightness adjustment.
+	// These are now taken as 16 bit values, so we can take full advantage
+	// of dacs with >8 bits of precision
+	virtual void			GLimpSetGamma(unsigned short red[256], unsigned short green[256], unsigned short blue[256]) = 0;
+
+	virtual void			GLimpSwapBuffers(void) = 0;
+	// input is tied to windows, so it needs to be started up and shut down whenever
+	// the main window is recreated
+	virtual void			InitInput(void) =0;
+	virtual void			ShutdownInput(void) =0;
+
+	// event generation
+	virtual void			GenerateEvents(void) = 0;
+	virtual sysEvent_t		GetEvent(void) = 0;
+	virtual void			ClearEvents(void) = 0;
+
+	// keyboard input polling
+	virtual int				PollKeyboardInputEvents(void) = 0;
+	virtual int				ReturnKeyboardInputEvent(const int n, int& ch, bool& state) = 0;
+	virtual void			EndKeyboardInputEvents(void) = 0;
+
+	// joystick input polling
+	virtual void			SetRumble(int device, int low, int hi) = 0;
+	virtual int				PollJoystickInputEvents(int deviceNum) = 0;
+	virtual int				ReturnJoystickInputEvent(int deviceNum, const int n, int& action, int& value) = 0;
+	virtual void			EndJoystickInputEvents(void) = 0;
+
+	// mouse input polling
+	virtual int				PollMouseInputEvents(int mouseEvents[MAX_MOUSE_EVENTS][2]) = 0;
+
 	virtual sysEvent_t		GenerateMouseButtonEvent( int button, bool down ) = 0;
 	virtual sysEvent_t		GenerateMouseMoveEvent( int deltax, int deltay ) = 0;
 	
 	virtual void			OpenURL( const char* url, bool quit ) = 0;
 	virtual void			StartProcess( const char* exePath, bool quit ) = 0;
+
+	// note that this isn't journaled...
+	virtual char* 			GetClipboardData(void) =0;
+	virtual void			SetClipboardData(const char* string) =0;
+
+	virtual SDL_Window*		GetWindowHandler(void) = 0;
+
+	//beato end
+
 };
 
 extern idSys* 				sys;

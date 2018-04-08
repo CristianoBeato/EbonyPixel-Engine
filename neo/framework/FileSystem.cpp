@@ -33,6 +33,13 @@ If you have questions concerning this license or the applicable additional terms
 #include "Unzip.h"
 #include "Zip.h"
 
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "EventLoop.h"
+#endif // GAME_DLL
+//Beato End
+
+
 #ifdef WIN32
 #include <io.h>	// for _read
 #else
@@ -646,7 +653,7 @@ void idFileSystemLocal::CreateOSPath( const char* OSPath )
 		{
 			// create the directory
 			*ofs = 0;
-			Sys_Mkdir( path );
+			sys->Mkdir( path );
 			*ofs = PATHSEPARATOR_CHAR;
 		}
 	}
@@ -797,17 +804,13 @@ bool FileExistsInAllManifests( const char* filename, idList< idFileManifest >& m
 	for( int i = 0; i < manifests.Num(); i++ )
 	{
 		if( strstr( manifests[ i ].GetManifestName(), "_startup" ) != NULL )
-		{
 			continue;
-		}
+
 		if( strstr( manifests[ i ].GetManifestName(), "_pc" ) != NULL )
-		{
 			continue;
-		}
+
 		if( manifests[ i ].FindFile( filename ) == -1 )
-		{
 			return false;
-		}
 	}
 	return true;
 }
@@ -817,13 +820,10 @@ bool FileExistsInAllPreloadManifests( const char* filename, idList< idPreloadMan
 	for( int i = 0; i < manifests.Num(); i++ )
 	{
 		if( strstr( manifests[ i ].GetManifestName(), "_startup" ) != NULL )
-		{
 			continue;
-		}
+
 		if( manifests[ i ].FindResource( filename ) == -1 )
-		{
 			return false;
-		}
 	}
 	return true;
 }
@@ -833,13 +833,11 @@ void RemoveFileFromAllManifests( const char* filename, idList< idFileManifest >&
 	for( int i = 0; i < manifests.Num(); i++ )
 	{
 		if( strstr( manifests[ i ].GetManifestName(), "_startup" ) != NULL )
-		{
 			continue;
-		}
+		
 		if( strstr( manifests[ i ].GetManifestName(), "_pc" ) != NULL )
-		{
 			continue;
-		}
+
 		manifests[ i ].RemoveAll( filename );
 	}
 }
@@ -1167,7 +1165,7 @@ void idFileSystemLocal::BuildOrderedStartupContainer()
 	orderedFiles.Append( "script/map_maledict.script" );
 	orderedFiles.Append( "script/d3le-ai_monster_boss_guardian2.script" );
 	orderedFiles.Append( "script/ai_follower.script" );
-	orderedFiles.Append( "generated/swf/shell.bswf" );
+//	orderedFiles.Append( "generated/swf/shell.bswf" );
 	fl = ListFilesTree( "newfonts", "*.dat", false );
 	for( int i = 0; i < fl->GetList().Num(); i++ )
 	{
@@ -1185,12 +1183,12 @@ idFileSystemLocal::WriteResourcePacks
 */
 void idFileSystemLocal::WriteResourcePacks()
 {
-
+	idStr path;
 	idStrList filesNotCommonToAllMaps( 16384 );		// files that are not shared by all maps, used to trim the common list
 	idStrList filesCommonToAllMaps( 16384 );		// files that are shared by all maps, will include startup files, renderprogs etc..
 	idPreloadManifest commonPreloads;				// preload entries that exist in all map preload files
 	
-	idStr path = RelativePathToOSPath( "maps/", "fs_savepath" );
+	path = RelativePathToOSPath( "maps/", "fs_savepath" );
 	
 	idStrList manifestFiles;
 	ListOSFiles( path, ".manifest", manifestFiles );
@@ -1201,7 +1199,7 @@ void idFileSystemLocal::WriteResourcePacks()
 	// load all file manifests
 	for( int i = 0; i < manifestFiles.Num(); i++ )
 	{
-		idStr path = "maps/";
+		path = "maps/";
 		path += manifestFiles[ i ];
 		idFileManifest manifest;
 		if( manifest.LoadManifest( path ) )
@@ -1221,7 +1219,7 @@ void idFileSystemLocal::WriteResourcePacks()
 	// load all preload manifests
 	for( int i = 0; i < preloadFiles.Num(); i++ )
 	{
-		idStr path = "maps/";
+		path = "maps/";
 		path += preloadFiles[ i ];
 		if( path.Find( "_startup", false ) >= 0 )
 		{
@@ -1243,17 +1241,12 @@ void idFileSystemLocal::WriteResourcePacks()
 		{
 			idStr name = manifest.GetFileNameByIndex( j );
 			if( name.CheckExtension( ".cfg" ) || ( name.Find( ".lang", false ) >= 0 ) )
-			{
 				continue;
-			}
+
 			if( FileExistsInAllManifests( name, manifests ) )
-			{
 				filesCommonToAllMaps.AddUnique( name );
-			}
 			else
-			{
 				filesNotCommonToAllMaps.AddUnique( name );
-			}
 		}
 	}
 	// common list of preload reosurces, image, sample or models
@@ -1754,7 +1747,7 @@ const char* idFileSystemLocal::BuildOSPath( const char* base, const char* relati
 idFileSystemLocal::BuildOSPath
 ===================
 */
-const char* idFileSystemLocal::BuildOSPath( const char* base, const char* game, const char* relativePath )
+const char* idFileSystemLocal::BuildOSPath( const char* base, const char* _game, const char* relativePath )
 {
 	static char OSPath[MAX_STRING_CHARS];
 	idStr newPath;
@@ -1768,7 +1761,7 @@ const char* idFileSystemLocal::BuildOSPath( const char* base, const char* game, 
 	idStr strBase = base;
 	strBase.StripTrailing( '/' );
 	strBase.StripTrailing( '\\' );
-	sprintf( newPath, "%s/%s/%s", strBase.c_str(), game, relativePath );
+	sprintf( newPath, "%s/%s/%s", strBase.c_str(), _game, relativePath );
 	ReplaceSeparators( newPath );
 	idStr::Copynz( OSPath, newPath, sizeof( OSPath ) );
 	return OSPath;
@@ -1923,9 +1916,9 @@ bool idFileSystemLocal::RemoveDir( const char* relativePath )
 	bool success = true;
 	if( fs_savepath.GetString()[0] )
 	{
-		success &= Sys_Rmdir( BuildOSPath( fs_savepath.GetString(), relativePath ) );
+		success &= sys->Rmdir( BuildOSPath( fs_savepath.GetString(), relativePath ) );
 	}
-	success &= Sys_Rmdir( BuildOSPath( fs_basepath.GetString(), relativePath ) );
+	success &= sys->Rmdir( BuildOSPath( fs_basepath.GetString(), relativePath ) );
 	return success;
 }
 
@@ -2465,6 +2458,8 @@ void idFileSystemLocal::FreeFileList( idFileList* fileList )
 	delete fileList;
 }
 
+//Bt
+#include "sys/common/sys_filesys_common.h"
 /*
 ===============
 idFileSystemLocal::ListOSFiles
@@ -2474,12 +2469,13 @@ idFileSystemLocal::ListOSFiles
 */
 int	idFileSystemLocal::ListOSFiles( const char* directory, const char* extension, idStrList& list )
 {
+	//btFileSysCommon Fs = sys->GetFSHandler();
 	if( !extension )
 	{
 		extension = "";
 	}
 	
-	return Sys_ListFiles( directory, extension, list );
+	return sys->GetFSHandler().ListFiles( directory, extension, list );
 }
 
 /*
@@ -3132,13 +3128,9 @@ void idFileSystemLocal::Init()
 	common->StartupVariable( "fs_copyfiles" );
 	
 	if( fs_basepath.GetString()[0] == '\0' )
-	{
-		fs_basepath.SetString( Sys_DefaultBasePath() );
-	}
+		fs_basepath.SetString(sys->DefaultBasePath() );
 	if( fs_savepath.GetString()[0] == '\0' )
-	{
-		fs_savepath.SetString( Sys_DefaultSavePath() );
-	}
+		fs_savepath.SetString(sys->DefaultSavePath() );
 	
 	// try to start up normally
 	Startup();
@@ -3432,20 +3424,20 @@ idFile* idFileSystemLocal::OpenFileReadFlags( const char* relativePath, int sear
 				
 				if( fs_buildResources.GetBool() )
 				{
-					idStrStatic< MAX_OSPATH > relativePath = OSPathToRelativePath( copypath );
-					relativePath.BackSlashesToSlashes();
-					relativePath.ToLower();
+					idStrStatic< MAX_OSPATH > relativeOsPath = OSPathToRelativePath( copypath );
+					relativeOsPath.BackSlashesToSlashes();
+					relativeOsPath.ToLower();
 					
-					if( IsSoundSample( relativePath ) )
+					if( IsSoundSample(relativeOsPath) )
 					{
-						idStrStatic< MAX_OSPATH > samplePath = relativePath;
+						idStrStatic< MAX_OSPATH > samplePath = relativeOsPath;
 						samplePath.SetFileExtension( "idwav" );
 						if( samplePath.Find( "generated/" ) == -1 )
 						{
 							samplePath.Insert( "generated/", 0 );
 						}
 						fileManifest.AddUnique( samplePath );
-						if( relativePath.Find( "/vo/", false ) >= 0 )
+						if(relativeOsPath.Find( "/vo/", false ) >= 0 )
 						{
 							// this is vo so add the language variants
 							for( int i = 0; i < Sys_NumLangs(); i++ )
@@ -3455,7 +3447,7 @@ idFile* idFileSystemLocal::OpenFileReadFlags( const char* relativePath, int sear
 								{
 									continue;
 								}
-								samplePath = relativePath;
+								samplePath = relativeOsPath;
 								samplePath.Replace( "/vo/", va( "/vo/%s/", lang ) );
 								samplePath.SetFileExtension( "idwav" );
 								if( samplePath.Find( "generated/" ) == -1 )
@@ -3467,7 +3459,7 @@ idFile* idFileSystemLocal::OpenFileReadFlags( const char* relativePath, int sear
 							}
 						}
 					}
-					else if( relativePath.Icmpn( "guis/", 5 ) == 0 )
+					else if(relativeOsPath.Icmpn( "guis/", 5 ) == 0 )
 					{
 						// this is a gui so add the language variants
 						for( int i = 0; i < Sys_NumLangs(); i++ )
@@ -3475,24 +3467,22 @@ idFile* idFileSystemLocal::OpenFileReadFlags( const char* relativePath, int sear
 							const char* lang = Sys_Lang( i );
 							if( idStr::Icmp( lang, ID_LANG_ENGLISH ) == 0 )
 							{
-								fileManifest.Append( relativePath );
+								fileManifest.Append(relativeOsPath);
 								continue;
 							}
-							idStrStatic< MAX_OSPATH > guiPath = relativePath;
+							idStrStatic< MAX_OSPATH > guiPath = relativeOsPath;
 							guiPath.Replace( "guis/", va( "guis/%s/", lang ) );
 							fileManifest.Append( guiPath );
 						}
-					}
+					}//BTENDHERE;
 					else
 					{
 						// never add .amp files
-						if( strstr( relativePath, ".amp" ) == NULL )
-						{
-							fileManifest.Append( relativePath );
-						}
+						if( strstr(relativeOsPath, ".amp" ) == NULL )
+							fileManifest.Append( relativeOsPath );
 					}
 					
-				}
+				} 
 				
 				if( fs_copyfiles.GetBool() )
 				{
@@ -3806,7 +3796,7 @@ void idFileSystemLocal::FindDLL( const char* name, char _dllPath[ MAX_OSPATH ] )
 	sys->DLL_GetFileName( name, dllName, MAX_OSPATH );
 	
 	// from executable directory first - this is handy for developement
-	idStr dllPath = Sys_EXEPath( );
+	idStr dllPath = sys->EXEPath( );
 	dllPath.StripFilename( );
 	dllPath.AppendPath( dllName );
 	idFile* dllFile = OpenExplicitFileRead( dllPath );
@@ -3847,5 +3837,5 @@ idFileSystemLocal::IsFolder
 */
 sysFolder_t idFileSystemLocal::IsFolder( const char* relativePath, const char* basePath )
 {
-	return Sys_IsFolder( RelativePathToOSPath( relativePath, basePath ) );
+	return sys->IsFolder( RelativePathToOSPath( relativePath, basePath ) );
 }

@@ -1473,7 +1473,8 @@ int	idParticleStage::ParticleVerts( particleGen_t* g, idVec3 origin, idDrawVert*
 			trailTime = 0.5f;
 		}
 		
-		float height = 1.0f / ( 1 + numTrails );
+		//float height = 1.0f / ( 1 + numTrails );
+		height = 1.0f / (1 + numTrails);
 		float t = 0;
 		
 		for( int i = 0 ; i <= numTrails ; i++ )

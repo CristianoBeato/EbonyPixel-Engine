@@ -35,17 +35,18 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-#define GAME_NAME						"DOOM 3: BFG Edition"		// appears on window titles and errors
+#define GAME_NAME						"Elbone Pixel-Demo"		// appears on window titles and errors
 
 // RB: changed home folder so we don't break the savegame of the original game
-#define SAVE_PATH						"\\id Software\\RBDOOM 3 BFG"
+#define SAVE_PATH						"EBPx demo"
+#define GAME_PRODUCER					"Beato Productions"
 
-#define ENGINE_VERSION					"RBDOOM 3 BFG 1.1.0"	// printed in console
+#define ENGINE_VERSION					"Elbone Pixel Alpha 0.1.0"	// printed in console
 // RB end
 
 #define	BASE_GAMEDIR					"base"
 
-#define CONFIG_FILE						"D3BFGConfig.cfg"
+#define CONFIG_FILE						"ebPxConfig.cfg"
 
 // see ASYNC_PROTOCOL_VERSION
 // use a different major for each game
@@ -54,19 +55,20 @@ If you have questions concerning this license or the applicable additional terms
 // <= Doom v1.1: 1. no DS_VERSION token ( default )
 // Doom v1.2:  2
 // Doom 3 BFG: 3
-#define RENDERDEMO_VERSION				3
+// Elboni Pixel 4
+#define RENDERDEMO_VERSION				4
 
 // win32 info
-#define WIN32_CONSOLE_CLASS				"D3BFG_WinConsole"
-#define	WIN32_WINDOW_CLASS_NAME			"D3BFG"
-#define	WIN32_FAKE_WINDOW_CLASS_NAME	"D3BFG_WGL_FAKE"
+#define WIN32_CONSOLE_CLASS				"ElboniPixel_WinConsole"
+#define	WIN32_WINDOW_CLASS_NAME			"ElboniPixel"
+#define	WIN32_FAKE_WINDOW_CLASS_NAME	"ElboniPixel_WGL_FAKE"
 
 // RB begin
 // Default base path (used only if none could be found)
 #ifdef __APPLE__
-#define DEFAULT_BASEPATH				"/Applications/RBDOOM-3-BFG.app/Contents/Resources"
+#define DEFAULT_BASEPATH				"/Applications/ElboniPixel.app/Contents/Resources"
 #else
-#define DEFAULT_BASEPATH				"/usr/share/games/doom3bfg"
+#define DEFAULT_BASEPATH				"/usr/share/games/ElboniPixel"
 #endif
 // RB end
 

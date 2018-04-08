@@ -758,7 +758,7 @@ int idSaveGameThread::Run()
 		
 		if( savegame_winInduceDelay.GetInteger() > 0 )
 		{
-			Sys_Sleep( savegame_winInduceDelay.GetInteger() );
+			sys->Sleep( savegame_winInduceDelay.GetInteger() );
 		}
 		
 		if( data.saveLoadParms->mode & SAVEGAME_MBF_SAVE )

@@ -426,7 +426,7 @@ tree_t* FaceBSP( bspface_t* list )
 	int			count;
 	int			start, end;
 	
-	start = Sys_Milliseconds();
+	start = sys->Milliseconds();
 	
 	common->Printf( "--- FaceBSP ---\n" );
 	
@@ -452,7 +452,7 @@ tree_t* FaceBSP( bspface_t* list )
 	
 	common->Printf( "%5i leafs\n", c_faceLeafs );
 	
-	end = Sys_Milliseconds();
+	end = sys->Milliseconds();
 	
 	common->Printf( "%5.1f seconds faceBsp\n", ( end - start ) / 1000.0 );
 	

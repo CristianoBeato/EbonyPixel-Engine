@@ -149,7 +149,7 @@ void idSoundSystemLocal::Init()
 
 	idLib::Printf( "----- Initializing Sound System ------\n" );
 	
-	soundTime = Sys_Milliseconds();
+	soundTime = sys->Milliseconds();
 	random.SetSeed( soundTime );
 	
 	if( !s_noSound.GetBool() )
@@ -349,7 +349,7 @@ void idSoundSystemLocal::Render()
 	hardware.Update();
 	
 	// The sound system doesn't use game time or anything like that because the sounds are decoded in real time.
-	soundTime = Sys_Milliseconds();
+	soundTime = sys->Milliseconds();
 }
 
 /*
@@ -391,10 +391,10 @@ idSoundSystemLocal::GetIXAudio2
 void* idSoundSystemLocal::GetIXAudio2() const
 {
 	// RB begin
-#if defined(USE_OPENAL)
-	return NULL;
-#else
+#if defined(_USE_XAUDIO2_)
 	return ( void* )hardware.GetIXAudio2();
+#else
+	return NULL;
 #endif
 	// RB end
 }
@@ -407,10 +407,12 @@ idSoundSystemLocal::GetOpenALDevice
 // RB begin
 void* idSoundSystemLocal::GetOpenALDevice() const
 {
-#if defined(USE_OPENAL)
+#if defined(_USE_OPENAL_)
 	return ( void* )hardware.GetOpenALDevice();
-#else
+#elif defined(_USE_XAUDIO2_)
 	return ( void* )hardware.GetIXAudio2();
+#else
+	//TODO A SDL Handler
 #endif
 }
 // RB end
@@ -569,7 +571,7 @@ void idSoundSystemLocal::Preload( idPreloadManifest& manifest )
 
 	idStrStatic< MAX_OSPATH > filename;
 	
-	int	start = Sys_Milliseconds();
+	int	start = sys->Milliseconds();
 	int numLoaded = 0;
 	
 	idList< preloadSort_t > preloadSort;
@@ -615,7 +617,7 @@ void idSoundSystemLocal::Preload( idPreloadManifest& manifest )
 		}
 	}
 	
-	int	end = Sys_Milliseconds();
+	int	end = sys->Milliseconds();
 	common->Printf( "%05d sounds preloaded in %5.1f seconds\n", numLoaded, ( end - start ) * 0.001 );
 	common->Printf( "----------------------------------------\n" );
 }
@@ -631,7 +633,7 @@ void idSoundSystemLocal::EndLevelLoad()
 	insideLevelLoad = false;
 	
 	common->Printf( "----- idSoundSystemLocal::EndLevelLoad -----\n" );
-	int		start = Sys_Milliseconds();
+	int		start = sys->Milliseconds();
 	int		keepCount = 0;
 	int		loadCount = 0;
 	
@@ -680,7 +682,7 @@ void idSoundSystemLocal::EndLevelLoad()
 		
 		samples[ preloadSort[ i ].idx ]->LoadResource();
 	}
-	int	end = Sys_Milliseconds();
+	int	end = sys->Milliseconds();
 	
 	common->Printf( "%5i sounds loaded in %5.1f seconds\n", loadCount, ( end - start ) * 0.001 );
 	common->Printf( "----------------------------------------\n" );

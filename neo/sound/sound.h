@@ -321,7 +321,7 @@ public:
 	// video playback needs to get this
 	virtual void* 			GetIXAudio2() const = 0; // FIXME: stupid name if we have other backends
 	
-#if defined(USE_OPENAL)
+#if defined(_USE_OPENAL_)
 	virtual void*			GetOpenALDevice() const = 0;
 #endif
 	

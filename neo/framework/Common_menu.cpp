@@ -31,6 +31,13 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Common_local.h"
 
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "Console.h"
+#endif // GAME_DLL
+//Beato End
+
+
 /*
 ==============
 idCommonLocal::InitializeMPMapsModes

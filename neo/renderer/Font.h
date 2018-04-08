@@ -28,6 +28,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __FONT_H__
 #define __FONT_H__
 
+#include <SDL_ttf.h>
+
+class btBitmapBuffer;
+
+static const int GLYPHS_PER_FONT = 256;
+
 struct scaledGlyphInfo_t
 {
 	float	top, left;
@@ -47,7 +53,7 @@ public:
 	
 	const char* GetName() const
 	{
-		return name;
+		return name.c_str();
 	}
 	
 	float GetLineHeight( float scale ) const;
@@ -58,12 +64,24 @@ public:
 	void GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t& glyphInfo ) const;
 	
 private:
-	static idFont* RemapFont( const char* baseName );
-	
-	int	GetGlyphIndex( uint32 idx ) const;
-	
-	bool LoadFont();
-	
+
+	struct oldGlyphInfo_t
+	{
+		int					height;			// number of scan lines
+		int					top;			// top of glyph in buffer
+		int					bottom;			// bottom of glyph in buffer
+		int					pitch;			// width for copying
+		int					xSkip;			// x adjustment
+		int					imageWidth;		// width of actual image
+		int					imageHeight;	// height of actual image
+		float				s;				// x offset in image where glyph starts
+		float				t;				// y offset in image where glyph starts
+		float				s2;
+		float				t2;
+		int					junk;
+		char				materialName[32];
+	};
+
 	struct glyphInfo_t
 	{
 		byte	width;	// width of glyph in pixels
@@ -74,6 +92,7 @@ private:
 		uint16	s;		// x offset in image where glyph starts (in pixels)
 		uint16	t;		// y offset in image where glyph starts (in pixels)
 	};
+
 	struct fontInfo_t
 	{
 		struct oldInfo_t
@@ -97,7 +116,21 @@ private:
 		
 		const idMaterial* 	material;
 	};
-	
+
+	static idFont* RemapFont( const char* baseName );
+	int	GetGlyphIndex( uint32 idx ) const;
+	bool	LoadFont(void);
+//Beato Begin: true type font suport
+	bool	LoadTTF(void);
+	bool	openTTFFile(idStr file, uint ptsize);
+	bool	LoadFontGlyphs(btBitmapBuffer *buffer);
+	bool	SaveFont(idStr fontName, btBitmapBuffer *buffer);
+	glyphInfo_t *	ConstructGlyphInfo(const unsigned char c, uint &cellW, uint &cellH, btBitmapBuffer glyBuff);
+//Beato End
+	bool	LoadOldGlyphData(const char* filename, oldGlyphInfo_t glyphInfo[GLYPHS_PER_FONT]);
+
+	//current openFont
+	TTF_Font*	m_fontData;
 	// base name of the font (minus "fonts/" and ".dat")
 	idStr			name;
 	

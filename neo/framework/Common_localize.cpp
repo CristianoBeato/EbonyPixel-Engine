@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "Common_local.h"
+#include "sys/common/sys_filesys_common.h"
 
 idCVar com_product_lang_ext( "com_product_lang_ext", "1", CVAR_INTEGER | CVAR_SYSTEM | CVAR_ARCHIVE, "Extension to use when creating language files." );
 
@@ -158,7 +159,9 @@ void GetFileList( const char* dir, const char* ext, idStrList& list )
 
 	//Recurse Subdirectories
 	idStrList dirList;
-	Sys_ListFiles( dir, "/", dirList );
+	//Sys_ListFiles( dir, "/", dirList );
+	sys->GetFSHandler().ListFiles(dir, "/", dirList);
+
 	for( int i = 0; i < dirList.Num(); i++ )
 	{
 		if( dirList[i] == "." || dirList[i] == ".." )
@@ -170,7 +173,7 @@ void GetFileList( const char* dir, const char* ext, idStrList& list )
 	}
 	
 	idStrList fileList;
-	Sys_ListFiles( dir, ext, fileList );
+	sys->GetFSHandler().ListFiles( dir, ext, fileList );
 	for( int i = 0; i < fileList.Num(); i++ )
 	{
 		idStr fullName = va( "%s/%s", dir, fileList[i].c_str() );
@@ -409,29 +412,22 @@ CONSOLE_COMMAND( localizeGuis, "localize guis", NULL )
 	idFileList* files;
 	if( idStr::Icmp( args.Argv( 1 ), "all" ) == 0 )
 	{
-		idStr game = cvarSystem->GetCVarString( "game_expansion" );
-		if( game.Length() )
-		{
-			files = fileSystem->ListFilesTree( "guis", "*.gui", true, game );
-		}
+		idStr gameEx = cvarSystem->GetCVarString( "game_expansion" );
+		if(gameEx.Length() )
+			files = fileSystem->ListFilesTree( "guis", "*.gui", true, gameEx);
 		else
-		{
 			files = fileSystem->ListFilesTree( "guis", "*.gui", true );
-		}
+
 		for( int i = 0; i < files->GetNumFiles(); i++ )
 		{
 			commonLocal.LocalizeGui( files->GetFile( i ), strTable );
 		}
 		fileSystem->FreeFileList( files );
 		
-		if( game.Length() )
-		{
-			files = fileSystem->ListFilesTree( "guis", "*.pd", true, game );
-		}
+		if(gameEx.Length() )
+			files = fileSystem->ListFilesTree( "guis", "*.pd", true, gameEx);
 		else
-		{
 			files = fileSystem->ListFilesTree( "guis", "*.pd", true, "d3xp" );
-		}
 		
 		for( int i = 0; i < files->GetNumFiles(); i++ )
 		{

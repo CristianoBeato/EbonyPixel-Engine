@@ -347,10 +347,10 @@ void idVertexCache::BeginBackEnd()
 	}
 	
 	// unmap the current frame so the GPU can read it
-	const int startUnmap = Sys_Milliseconds();
+	const int startUnmap = sys->Milliseconds();
 	UnmapGeoBufferSet( frameData[listNum] );
 	UnmapGeoBufferSet( staticData );
-	const int endUnmap = Sys_Milliseconds();
+	const int endUnmap = sys->Milliseconds();
 	if( endUnmap - startUnmap > 1 )
 	{
 		idLib::PrintfIf( r_showVertexCacheTimings.GetBool(), "idVertexCache::unmap took %i msec\n", endUnmap - startUnmap );
@@ -361,9 +361,9 @@ void idVertexCache::BeginBackEnd()
 	currentFrame++;
 	
 	listNum = currentFrame % VERTCACHE_NUM_FRAMES;
-	const int startMap = Sys_Milliseconds();
+	const int startMap = sys->Milliseconds();
 	MapGeoBufferSet( frameData[listNum] );
-	const int endMap = Sys_Milliseconds();
+	const int endMap = sys->Milliseconds();
 	if( endMap - startMap > 1 )
 	{
 		idLib::PrintfIf( r_showVertexCacheTimings.GetBool(), "idVertexCache::map took %i msec\n", endMap - startMap );

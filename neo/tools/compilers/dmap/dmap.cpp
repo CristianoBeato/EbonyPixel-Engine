@@ -390,7 +390,7 @@ void Dmap( const idCmdArgs& args )
 	// if this isn't a regioned map, delete the last saved region map
 	if( passedName.Right( 4 ) != ".reg" )
 	{
-		idStr::snPrintf( path, sizeof( path ), "%s.reg", dmapGlobals.mapFileBase );
+		sprintf( path, "%s.reg", dmapGlobals.mapFileBase );
 		fileSystem->RemoveFile( path );
 	}
 	else
@@ -402,7 +402,7 @@ void Dmap( const idCmdArgs& args )
 	passedName = stripped;
 	
 	// delete any old line leak files
-	idStr::snPrintf( path, sizeof( path ),"%s.lin", dmapGlobals.mapFileBase );
+	sprintf( path, "%s.lin", dmapGlobals.mapFileBase );
 	fileSystem->RemoveFile( path );
 	
 	// delete any old generated binary proc files
@@ -412,7 +412,7 @@ void Dmap( const idCmdArgs& args )
 	//
 	// start from scratch
 	//
-	start = Sys_Milliseconds();
+	start = sys->Milliseconds();
 	
 	if( !LoadDMapFile( passedName ) )
 	{
@@ -442,7 +442,7 @@ void Dmap( const idCmdArgs& args )
 	common->Printf( "%i total shadow triangles\n", dmapGlobals.totalShadowTriangles );
 	common->Printf( "%i total shadow verts\n", dmapGlobals.totalShadowVerts );
 	
-	end = Sys_Milliseconds();
+	end = sys->Milliseconds();
 	common->Printf( "-----------------------\n" );
 	common->Printf( "%5.0f seconds for dmap\n", ( end - start ) * 0.001f );
 	
@@ -456,12 +456,12 @@ void Dmap( const idCmdArgs& args )
 			cmdSystem->BufferCommandText( CMD_EXEC_NOW, "disconnect" );
 			
 			// create the collision map
-			start = Sys_Milliseconds();
+			start = sys->Milliseconds();
 			
 			collisionModelManager->LoadMap( dmapGlobals.dmapFile );
 			collisionModelManager->FreeMap();
 			
-			end = Sys_Milliseconds();
+			end = sys->Milliseconds();
 			common->Printf( "-------------------------------------\n" );
 			common->Printf( "%5.0f seconds to create collision map\n", ( end - start ) * 0.001f );
 		}

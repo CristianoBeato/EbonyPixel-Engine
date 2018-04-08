@@ -26,8 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
+
 
 
 #undef min			// windef.h macros
@@ -287,12 +288,12 @@ void	idBoundsTrack::Test()
 	FindBoundsIntersectionsSimSIMD( shortTestBounds, boundsList, maxIndex, intersectedIndexes2 );
 	
 	// timing
-	const int64 start = Sys_Microseconds();
+	const int64 start = sys->Microseconds();
 	for( int i = 0 ; i < 40 ; i++ )
 	{
 		FindBoundsIntersectionsSimSIMD( shortTestBounds, boundsList, maxIndex, intersectedIndexes2 );
 	}
-	const int64 stop = Sys_Microseconds();
+	const int64 stop = sys->Microseconds();
 	idLib::Printf( "%lli microseconds for 40 itterations\n", stop - start );
 }
 

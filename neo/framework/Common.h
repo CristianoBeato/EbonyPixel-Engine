@@ -3,8 +3,6 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2016 Robert Beckebans
-Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -130,6 +128,8 @@ typedef enum
 	EDITOR_MATERIAL				= BIT( 11 )
 } toolFlag_t;
 
+extern int			com_editors;			// currently opened editor(s)
+
 #define STRTABLE_ID				"#str_"
 #define STRTABLE_ID_LENGTH		5
 
@@ -141,8 +141,9 @@ extern idCVar		com_showFPS;
 extern idCVar		com_showMemoryUsage;
 extern idCVar		com_updateLoadSize;
 extern idCVar		com_productionMode;
+extern idCVar		com_forceGenericSIMD;
+extern idCVar		com_pause;
 
-extern int			com_editors;			// currently opened editor(s)
 struct MemInfo_t
 {
 	idStr			filebase;
@@ -223,9 +224,7 @@ public:
 	// DG end
 	
 	virtual void				UpdateLevelLoadPacifier() = 0;
-	//virtual void				UpdateLevelLoadPacifier( int mProgress ) = 0;
-	//virtual void				UpdateLevelLoadPacifier( bool updateSecondary ) = 0;
-	//virtual void				UpdateLevelLoadPacifier( bool updateSecondary, int Progress ) = 0;
+	
 	
 	// Checks for and removes command line "+set var arg" constructs.
 	// If match is NULL, all set commands will be executed, otherwise

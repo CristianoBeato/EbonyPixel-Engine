@@ -94,8 +94,7 @@ typedef enum
 
 #include "SoundVoice.h"
 
-#if defined(USE_OPENAL)
-
+#if defined(_USE_OPENAL_)
 //#define AL_ALEXT_PROTOTYPES
 
 #ifdef __APPLE__
@@ -133,7 +132,7 @@ ID_INLINE_EXTERN ALCenum CheckALCErrors_( ALCdevice* device, const char* filenam
 }
 #define CheckALCErrors(x) CheckALCErrors_((x), __FILE__, __LINE__)
 
-#elif defined(_MSC_VER) // DG: stub out xaudio for MinGW etc
+#elif defined(_USE_XAUDIO2_) // DG: stub out xaudio for MinGW etc
 
 #define OPERATION_SET 1
 
@@ -554,10 +553,10 @@ public:
 			bufferNumber( 0 )
 		{ }
 		
-#if defined(USE_OPENAL)
+#if defined(_USE_OPENAL_)
 		idSoundVoice_OpenAL* 	voice;
 		idSoundSample_OpenAL*	sample;
-#elif defined(_MSC_VER) // XAudio backend
+#elif defined(_USE_XAUDIO2_) // XAudio backend
 		// DG: because the inheritance is kinda strange (idSoundVoice is derived
 		// from idSoundVoice_XAudio2), casting the latter to the former isn't possible
 		// so we need this ugly #ifdef ..

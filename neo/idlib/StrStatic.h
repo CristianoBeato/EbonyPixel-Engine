@@ -97,7 +97,7 @@ public:
 	{
 		buffer[ 0 ] = '\0';
 		SetStaticBuffer( buffer, _size_ );
-		idStr::operator=( idStr( b ) );
+		idStr::operator=( b );
 	}
 	
 	ID_INLINE	explicit idStrStatic( const char c ) :
@@ -105,7 +105,7 @@ public:
 	{
 		buffer[ 0 ] = '\0';
 		SetStaticBuffer( buffer, _size_ );
-		idStr::operator=( idStr( c ) );
+		idStr::operator=( c );
 	}
 	
 	ID_INLINE	explicit idStrStatic( const int i ) :
@@ -113,7 +113,7 @@ public:
 	{
 		buffer[ 0 ] = '\0';
 		SetStaticBuffer( buffer, _size_ );
-		idStr::operator=( idStr( i ) );
+		idStr::operator=( i );
 	}
 	
 	ID_INLINE	explicit idStrStatic( const unsigned u ) :
@@ -121,7 +121,7 @@ public:
 	{
 		buffer[ 0 ] = '\0';
 		SetStaticBuffer( buffer, _size_ );
-		idStr::operator=( idStr( u ) );
+		idStr::operator=( u );
 	}
 	
 	ID_INLINE	explicit idStrStatic( const float f ) :
@@ -129,7 +129,7 @@ public:
 	{
 		buffer[ 0 ] = '\0';
 		SetStaticBuffer( buffer, _size_ );
-		idStr::operator=( idStr( f ) );
+		idStr::operator=( f );
 	}
 	
 private:

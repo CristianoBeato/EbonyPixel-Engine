@@ -392,7 +392,7 @@ void idSoundWorldLocal::Update()
 			const bool canMute = channel->CanMute();
 			if( canMute && channel->volumeDB <= DB_SILENCE )
 			{
-#if !defined(USE_OPENAL)
+#if !defined(_USE_OPENAL_)
 				channel->Mute();
 				continue;
 #endif

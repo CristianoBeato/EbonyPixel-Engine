@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "File_SaveGame.h"
 
@@ -1219,13 +1219,13 @@ static void TestProcessFile( const char* const filename )
 	idFile_SaveGamePipelined* saveFile = new( TAG_IDFILE ) idFile_SaveGamePipelined;
 	saveFile->OpenForWriting( outFileName, true );
 	
-	const uint64 startWriteMicroseconds = Sys_Microseconds();
+	const uint64 startWriteMicroseconds = sys->Microseconds();
 	
 	saveFile->Write( testData, testDataLength );
 	delete saveFile;		// final flush
 	const int readDataLength = fileSystem->GetFileLength( outFileName );
 	
-	const uint64 endWriteMicroseconds = Sys_Microseconds();
+	const uint64 endWriteMicroseconds = sys->Microseconds();
 	const uint64 writeMicroseconds = endWriteMicroseconds - startWriteMicroseconds;
 	
 	idLib::Printf( "%lld microseconds to compress %i bytes to %i written bytes = %4.1f MB/s\n",
@@ -1233,14 +1233,14 @@ static void TestProcessFile( const char* const filename )
 				   
 	void* readData = ( void* )Mem_Alloc( testDataLength, TAG_SAVEGAMES );
 	
-	const uint64 startReadMicroseconds = Sys_Microseconds();
+	const uint64 startReadMicroseconds = sys->Microseconds();
 	
 	idFile_SaveGamePipelined* loadFile = new( TAG_IDFILE ) idFile_SaveGamePipelined;
 	loadFile->OpenForReading( outFileName, true );
 	loadFile->Read( readData, testDataLength );
 	delete loadFile;
 	
-	const uint64 endReadMicroseconds = Sys_Microseconds();
+	const uint64 endReadMicroseconds = sys->Microseconds();
 	const uint64 readMicroseconds = endReadMicroseconds - startReadMicroseconds;
 	
 	idLib::Printf( "%lld microseconds to decompress = %4.1f MB/s\n", readMicroseconds, ( float )testDataLength / readMicroseconds );
@@ -1301,7 +1301,7 @@ CONSOLE_COMMAND( TestCompressionSpeeds, "Compares zlib and our code", 0 )
 	void* testData;
 	const int testDataLength = fileSystem->ReadFile( filename, &testData, NULL );
 	
-	const int startWriteMicroseconds = Sys_Microseconds();
+	const int startWriteMicroseconds = sys->Microseconds();
 	
 	idCompressor* compressor = idCompressor::AllocLZW();
 //	idFile *f = fileSystem->OpenFileWrite( "junk/lzwTest.bin" );
@@ -1315,7 +1315,7 @@ CONSOLE_COMMAND( TestCompressionSpeeds, "Compares zlib and our code", 0 )
 	delete compressor;
 	delete f;
 	
-	const int endWriteMicroseconds = Sys_Microseconds();
+	const int endWriteMicroseconds = sys->Microseconds();
 	const int writeMicroseconds = endWriteMicroseconds - startWriteMicroseconds;
 	
 	idLib::Printf( "%i microseconds to compress %i bytes to %i written bytes = %4.1f MB/s\n",

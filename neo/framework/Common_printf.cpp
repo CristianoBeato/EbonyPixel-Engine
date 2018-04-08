@@ -31,6 +31,13 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Common_local.h"
 
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "Console.h"
+#endif // GAME_DLL
+//Beato End
+
+
 idCVar com_logFile( "logFile", "0", CVAR_SYSTEM | CVAR_NOCHEAT, "1 = buffer log, 2 = flush after each print", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
 idCVar com_logFileName( "logFileName", "qconsole.log", CVAR_SYSTEM | CVAR_NOCHEAT, "name of log file, if empty, qconsole.log will be used" );
 idCVar com_timestampPrints( "com_timestampPrints", "0", CVAR_SYSTEM, "print time with each console print, 1 = msec, 2 = sec", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
@@ -122,15 +129,11 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 	msg[ 0 ] = '\0';
 	if( com_timestampPrints.GetInteger() )
 	{
-		int	t = Sys_Milliseconds();
+		int	t = sys->Milliseconds();
 		if( com_timestampPrints.GetInteger() == 1 )
-		{
 			sprintf( msg, "[%5.2f]", t * 0.001f );
-		}
 		else
-		{
 			sprintf( msg, "[%i]", t );
-		}
 	}
 	timeLength = strlen( msg );
 	// don't overflow
@@ -517,7 +520,7 @@ void idCommonLocal::Error( const char* fmt, ... )
 	}
 	
 	// if we are getting a solid stream of ERP_DROP, do an ERP_FATAL
-	currentTime = Sys_Milliseconds();
+	currentTime = sys->Milliseconds();
 	if( currentTime - lastErrorTime < 100 )
 	{
 		if( ++errorCount > 3 )
@@ -540,7 +543,7 @@ void idCommonLocal::Error( const char* fmt, ... )
 	
 	
 	// copy the error message to the clip board
-	Sys_SetClipboardData( errorMessage );
+	sys->SetClipboardData( errorMessage );
 	
 	// add the message to the error list
 	errorList.AddUnique( errorMessage );

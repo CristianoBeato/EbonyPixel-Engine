@@ -25,10 +25,18 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
+
 #include "precompiled.h"
 #pragma hdrstop
+
 #include "PlayerProfile.h"
+
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "KeyInput.h"
+#endif // GAME_DLL
+//Beato End
+
 
 // After releasing a version to the market, here are limitations for compatibility:
 //	- the major version should not ever change

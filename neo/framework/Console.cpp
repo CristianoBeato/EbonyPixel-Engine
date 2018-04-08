@@ -26,11 +26,22 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
+
+#include "Console.h"
 #include "ConsoleHistory.h"
-#include "../renderer/ResolutionScale.h"
+#include "renderer/Context/ResolutionScale.h"
 #include "Common_local.h"
+
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "DebugGraph.h"
+#	include "EditField.h"
+#	include "EventLoop.h"
+#	include "KeyInput.h"
+#endif // GAME_DLL
+//Beato End
 
 #define	CON_TEXTSIZE			0x30000
 #define	NUM_CON_TIMES			4
@@ -217,7 +228,7 @@ float idConsoleLocal::DrawFPS( float y )
 	
 	// don't use serverTime, because that will be drifting to
 	// correct for internet lag changes, timescales, timedemos, etc
-	int t = Sys_Milliseconds();
+	int t = sys->Milliseconds();
 	int frameTime = t - previous;
 	previous = t;
 	
@@ -782,7 +793,7 @@ Causes the console to start opening the desired amount.
 void idConsoleLocal::SetDisplayFraction( float frac )
 {
 	finalFrac = frac;
-	fracTime = Sys_Milliseconds();
+	fracTime = sys->Milliseconds();
 }
 
 /*
@@ -796,7 +807,7 @@ void idConsoleLocal::UpdateDisplayFraction()
 {
 	if( con_speed.GetFloat() <= 0.1f )
 	{
-		fracTime = Sys_Milliseconds();
+		fracTime = sys->Milliseconds();
 		displayFrac = finalFrac;
 		return;
 	}
@@ -804,21 +815,21 @@ void idConsoleLocal::UpdateDisplayFraction()
 	// scroll towards the destination height
 	if( finalFrac < displayFrac )
 	{
-		displayFrac -= con_speed.GetFloat() * ( Sys_Milliseconds() - fracTime ) * 0.001f;
+		displayFrac -= con_speed.GetFloat() * (sys->Milliseconds() - fracTime ) * 0.001f;
 		if( finalFrac > displayFrac )
 		{
 			displayFrac = finalFrac;
 		}
-		fracTime = Sys_Milliseconds();
+		fracTime = sys->Milliseconds();
 	}
 	else if( finalFrac > displayFrac )
 	{
-		displayFrac += con_speed.GetFloat() * ( Sys_Milliseconds() - fracTime ) * 0.001f;
+		displayFrac += con_speed.GetFloat() * (sys->Milliseconds() - fracTime ) * 0.001f;
 		if( finalFrac < displayFrac )
 		{
 			displayFrac = finalFrac;
 		}
-		fracTime = Sys_Milliseconds();
+		fracTime = sys->Milliseconds();
 	}
 }
 
@@ -846,7 +857,7 @@ bool	idConsoleLocal::ProcessEvent( const sysEvent_t* event, bool forceAccept )
 		if( keyCatching )
 		{
 			Close();
-			Sys_GrabMouseCursor( true );
+			sys->GrabMouseCursor( true );
 		}
 		else
 		{
@@ -918,7 +929,7 @@ void idConsoleLocal::Linefeed()
 	// mark time for transparent overlay
 	if( current >= 0 )
 	{
-		times[current % NUM_CON_TIMES] = Sys_Milliseconds();
+		times[current % NUM_CON_TIMES] = sys->Milliseconds();
 	}
 	
 	x = 0;
@@ -1033,7 +1044,7 @@ void idConsoleLocal::Print( const char* txt )
 	// mark time for transparent overlay
 	if( current >= 0 )
 	{
-		times[current % NUM_CON_TIMES] = Sys_Milliseconds();
+		times[current % NUM_CON_TIMES] = sys->Milliseconds();
 	}
 }
 
@@ -1115,7 +1126,7 @@ void idConsoleLocal::DrawNotify()
 		{
 			continue;
 		}
-		time = Sys_Milliseconds() - time;
+		time = sys->Milliseconds() - time;
 		if( time > con_notifyTime.GetFloat() * 1000 )
 		{
 			continue;
@@ -1350,7 +1361,7 @@ void idConsoleLocal::PrintOverlay( idOverlayHandle& handle, justify_t justify, c
 	overlayText_t& overlay = overlayText.Alloc();
 	overlay.text = string;
 	overlay.justify = justify;
-	overlay.time = Sys_Milliseconds();
+	overlay.time = sys->Milliseconds();
 	
 	handle.index = overlayText.Num() - 1;
 	handle.time = overlay.time;

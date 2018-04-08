@@ -551,7 +551,7 @@ saveGameHandle_t idSaveGameManager::ExecuteProcessorAndWait( idSaveGameProcessor
 	while( !IsSaveGameCompletedFromHandle( handle ) )
 	{
 		Pump();
-		Sys_Sleep( 10 );
+		sys->Sleep( 10 );
 	}
 	
 	// One more pump to get the completed callback
@@ -817,7 +817,7 @@ void idSaveGameManager::StartNextProcessor()
 		processorQueue.RemoveIndex( index );
 		processor = nextProcessor;
 		processor->parms.callbackSignal.Raise();	// signal that the thread is ready for work
-		startTime = Sys_Milliseconds();
+		startTime = sys->Milliseconds();
 	}
 }
 
@@ -830,7 +830,7 @@ void idSaveGameManager::FinishProcessor( idSaveGameProcessor* localProcessor )
 {
 
 	assert( localProcessor != NULL );
-	idLib::PrintfIf( saveGame_verbose.GetBool(), "[%s] : %s, %d ms\n", __FUNCTION__, localProcessor->Name(), Sys_Milliseconds() - startTime );
+	idLib::PrintfIf( saveGame_verbose.GetBool(), "[%s] : %s, %d ms\n", __FUNCTION__, localProcessor->Name(), sys->Milliseconds() - startTime );
 	
 	// This will delete from the files set for auto-deletion
 	// Don't remove files not set for auto-deletion, they may be used outside of the savegame manager by game-side callbacks for example

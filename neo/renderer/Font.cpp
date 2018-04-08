@@ -25,14 +25,22 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
+
 #include "Font.h"
 
-const char* DEFAULT_FONT = "Arial_Narrow";
+//Beato Begin: to create the virtual texture to the Font material
+#include "renderer/Image/ImageManager.h"
+#include "renderer/Image/Image_loader.h"
+//Beato end;
 
+const char* DEFAULT_FONT = "ubuntu";//"Arial_Narrow";
 static const float old_scale2 = 0.6f;
 static const float old_scale1 = 0.3f;
+static const int pointSizes[3] = { 12, 24, 48 };
+
+idCVar r_saveFontData("r_saveFontData", "0", CVAR_RENDERER | CVAR_BOOL, "save the TTF font in game internal font format");
 
 /*
 ==============================
@@ -53,28 +61,21 @@ idFont* idFont::RemapFont( const char* baseName )
 {
 	idStr cleanName = baseName;
 	
-	if( cleanName == DEFAULT_FONT )
-	{
+//	if( cleanName == DEFAULT_FONT )
+	if(cleanName.Cmp(DEFAULT_FONT) == 0)
 		return NULL;
-	}
 	
 	const char* remapped = idLocalization::FindString( "#font_" + cleanName );
 	if( remapped != NULL )
-	{
 		return renderSystem->RegisterFont( remapped );
-	}
 	
 	const char* wildcard = idLocalization::FindString( "#font_*" );
 	if( wildcard != NULL && cleanName.Icmp( wildcard ) != 0 )
-	{
 		return renderSystem->RegisterFont( wildcard );
-	}
 	
 	// Note single | so both sides are always executed
 	if( cleanName.ReplaceChar( ' ', '_' ) | cleanName.ReplaceChar( '-', '_' ) )
-	{
 		return renderSystem->RegisterFont( cleanName );
-	}
 	
 	return NULL;
 }
@@ -105,19 +106,22 @@ idFont::idFont( const char* n ) : name( n )
 		for( idFont* f = alias; f != NULL; f = f->alias )
 		{
 			if( f == this )
-			{
 				idLib::FatalError( "Font alias \"%s\" is a circular reference!", n );
-			}
 		}
 		return;
 	}
 	
+//Beato Begin: Try load a TrueType Font first
+#if 0
+	if (LoadTTF())
+		return;
+#endif
+//Beato End
+
 	if( !LoadFont() )
 	{
 		if( name.Icmp( DEFAULT_FONT ) == 0 )
-		{
 			idLib::FatalError( "Could not load default font \"%s\"", DEFAULT_FONT );
-		}
 		else
 		{
 			idLib::Warning( "Could not load font %s", n );
@@ -126,73 +130,20 @@ idFont::idFont( const char* n ) : name( n )
 	}
 }
 
-struct oldGlyphInfo_t
-{
-	int					height;			// number of scan lines
-	int					top;			// top of glyph in buffer
-	int					bottom;			// bottom of glyph in buffer
-	int					pitch;			// width for copying
-	int					xSkip;			// x adjustment
-	int					imageWidth;		// width of actual image
-	int					imageHeight;	// height of actual image
-	float				s;				// x offset in image where glyph starts
-	float				t;				// y offset in image where glyph starts
-	float				s2;
-	float				t2;
-	int					junk;
-	char				materialName[32];
-};
-static const int GLYPHS_PER_FONT = 256;
-
-/*
-==============================
-LoadOldGlyphData
-==============================
-*/
-bool LoadOldGlyphData( const char* filename, oldGlyphInfo_t glyphInfo[GLYPHS_PER_FONT] )
-{
-	idFile* fd = fileSystem->OpenFileRead( filename );
-	if( fd == NULL )
-	{
-		return false;
-	}
-	fd->Read( glyphInfo, GLYPHS_PER_FONT * sizeof( oldGlyphInfo_t ) );
-	for( int i = 0; i < GLYPHS_PER_FONT; i++ )
-	{
-		idSwap::Little( glyphInfo[i].height );
-		idSwap::Little( glyphInfo[i].top );
-		idSwap::Little( glyphInfo[i].bottom );
-		idSwap::Little( glyphInfo[i].pitch );
-		idSwap::Little( glyphInfo[i].xSkip );
-		idSwap::Little( glyphInfo[i].imageWidth );
-		idSwap::Little( glyphInfo[i].imageHeight );
-		idSwap::Little( glyphInfo[i].s );
-		idSwap::Little( glyphInfo[i].t );
-		idSwap::Little( glyphInfo[i].s2 );
-		idSwap::Little( glyphInfo[i].t2 );
-		assert( glyphInfo[i].imageWidth == glyphInfo[i].pitch );
-		assert( glyphInfo[i].imageHeight == glyphInfo[i].height );
-		assert( glyphInfo[i].imageWidth == ( glyphInfo[i].s2 - glyphInfo[i].s ) * 256 );
-		assert( glyphInfo[i].imageHeight == ( glyphInfo[i].t2 - glyphInfo[i].t ) * 256 );
-		assert( glyphInfo[i].junk == 0 );
-	}
-	delete fd;
-	return true;
-}
-
 /*
 ==============================
 idFont::LoadFont
 ==============================
 */
-bool idFont::LoadFont()
+bool idFont::LoadFont(void)
 {
-	idStr fontName = va( "newfonts/%s/48.dat", GetName() );
+
+	idStr fontName = name;
+	fontName = va("newfonts/%s/48.dat", fontName.c_str());
+	
 	idFile* fd = fileSystem->OpenFileRead( fontName );
 	if( fd == NULL )
-	{
 		return false;
-	}
 	
 	const int FONT_INFO_VERSION = 42;
 	const int FONT_INFO_MAGIC = ( FONT_INFO_VERSION | ( 'i' << 24 ) | ( 'd' << 16 ) | ( 'f' << 8 ) );
@@ -241,9 +192,7 @@ bool idFont::LoadFont()
 	for( int i = 0; i < fontInfo->numGlyphs; i++ )
 	{
 		if( fontInfo->charIndex[i] < 128 )
-		{
 			fontInfo->ascii[fontInfo->charIndex[i]] = i;
-		}
 		else
 		{
 			// Since the characters are sorted, as soon as we find a non-ascii character, we can stop
@@ -258,7 +207,6 @@ bool idFont::LoadFont()
 	fontInfo->material->SetSort( SS_GUI );
 	
 	// Load the old glyph data because we want our new fonts to fit in the old glyph metrics
-	int pointSizes[3] = { 12, 24, 48 };
 	float scales[3] = { 4.0f, 2.0f, 1.0f };
 	for( int i = 0; i < 3; i++ )
 	{
@@ -305,6 +253,249 @@ bool idFont::LoadFont()
 	return true;
 }
 
+bool idFont::LoadTTF(void)
+{
+	TTF_Font		*FontData = NULL;
+	//the font map
+	btBitmapBuffer	fontBitmap;
+	idStr TTFName = va("newfonts/%s.ttf", GetName());
+	idStr FtnVirtualName = va("fontface_%s.tga", GetName());
+
+	if (TTF_WasInit() < 0)
+		common->Warning("TTF_WasInit");
+
+	if (!openTTFFile(TTFName, 48))
+		return false;
+
+	fontInfo = new(TAG_FONT) fontInfo_t;
+	fontInfo->ascender = TTF_FontAscent(FontData);
+	fontInfo->descender = TTF_FontDescent(FontData);
+	fontInfo->numGlyphs = GLYPHS_PER_FONT;
+	fontInfo->charIndex = new(TAG_FONT)uint32[GLYPHS_PER_FONT];
+	fontInfo->glyphData = new(TAG_FONT)glyphInfo_t[GLYPHS_PER_FONT];
+	if (!LoadFontGlyphs( &fontBitmap))
+		return false;
+
+	//gen and reserve the font map
+	globalImages->ImageFromBitmapBuffer(FtnVirtualName, &fontBitmap);
+	if (r_saveFontData.GetBool())
+	{	
+		idStr fontName = va("newfonts/%s/48", GetName());
+		SaveFont(fontName, &fontBitmap);
+	}
+
+	fontInfo->material = declManager->FindMaterial(FtnVirtualName);
+	fontInfo->material->SetSort(SS_GUI);
+
+	//Close the font file
+	TTF_CloseFont(FontData);
+
+	return true;
+}
+
+bool idFont::openTTFFile(idStr file, uint ptsize)
+{
+	int FL = 0;
+	idFile		*fd = NULL;
+	SDL_RWops	*FontFileDataStream = NULL;
+	byte		*FontBuff = NULL;
+
+#if 1
+	idStr baseDir("base/" + file);
+	FontFileDataStream = SDL_RWFromFile(baseDir.c_str(), "r");
+	m_fontData = TTF_OpenFont(baseDir.c_str(), ptsize);
+#else
+	//open the font file
+	idFile* fd = fileSystem->OpenFileRead(file.c_str());
+	if (fd == NULL)
+		return false;
+
+	FL = fd->Length();
+	FontBuff = new(TAG_FONT)byte[FL];
+
+	fd->Read(FontBuff, FL* sizeof(byte));
+	FontFileDataStream = SDL_RWFromMem(FontBuff, FL);
+
+	m_fontData = TTF_OpenFontRW(FontFileDataStream, SDL_TRUE, ptsize);
+#endif
+	if (m_fontData == NULL)
+	{
+		common->Warning("error idFont::openTTFFile can't read font %s, %s", baseDir.c_str(), SDL_GetError());
+		goto error;
+	}
+	//close the font file
+	if (fd)
+		fileSystem->CloseFile(fd);
+	
+	return true;
+	
+error:
+	//close the font file
+	if(fd)
+		fileSystem->CloseFile(fd);
+	
+	if (FontBuff)
+		delete FontBuff;
+	
+	return false;
+}
+
+bool idFont::LoadFontGlyphs(btBitmapBuffer *buffer)
+{
+	//Get cell dimensions
+	uint32 cellW = 0;
+	uint32 cellH = 0;
+
+	//Character data
+	btBitmapBuffer bitmaps[GLYPHS_PER_FONT];
+	glyphInfo_t* glyphData = new(TAG_FONT)glyphInfo_t[GLYPHS_PER_FONT];
+
+	//Go through extended ASCII to get glyph data
+	for (int i = 0; i < fontInfo->numGlyphs; ++i)
+	{
+		fontInfo->charIndex[i] = i;
+
+		//check if font have this glyph
+		if (TTF_GlyphIsProvided(m_fontData, i) != 0)
+		{
+			uint height = TTF_FontHeight(m_fontData);
+			bitmaps[i].createPixels(height, 48);
+			// Calculate max width
+			if (48  > cellW)
+				cellW = 48;
+
+			// Calculate max Height
+			if (TTF_FontHeight(m_fontData) > cellH)
+				cellW = height;
+
+			continue;
+		}
+
+		glyphData[fontInfo->charIndex[i]] = *ConstructGlyphInfo(fontInfo->charIndex[i], cellW, cellH, bitmaps[i]);
+	}
+
+	//Create bitmap font
+	buffer->createPixels(cellW * 16, cellH * 16);
+
+	//Begin creating bitmap font
+	uint currentChar = 0;
+
+	//Blitting coordinates
+	int bX = 0;
+	int bY = 0;
+
+	//Go through cell rows
+	for (uint rows = 0; rows < 16; rows++)
+	{
+		//Go through each cell column in the row
+		for (uint cols = 0; cols < 16; cols++)
+		{
+			//Set base offsets
+			bX = cellW * cols;
+			bY = cellH * rows;
+
+			//font origin
+			glyphData[currentChar].s = bX;
+			glyphData[currentChar].t = bY;
+
+			//Blit character
+			bitmaps[currentChar].blitPixels(bX, bY, buffer);
+
+			//Go to the next character
+			fontInfo->glyphData[currentChar] = glyphData[currentChar];
+			currentChar++;
+		}
+	}
+
+	return true;
+}
+
+bool idFont::SaveFont(idStr fontName, btBitmapBuffer * buffer)
+{
+	idStr  tgaName(name.c_str() + idStr(".tga"));
+	//write out the tga
+	//R_WriteTGA(tgaName.c_str(), buffer->getBuff(), buffer->getWidth(), buffer->getHeight());
+	R_WriteImage(tgaName.c_str(), buffer->getBuff(), buffer->getWidth(), buffer->getHeight(), TGA, false);
+	return false;
+}
+
+idFont::glyphInfo_t * idFont::ConstructGlyphInfo(const unsigned char c, uint &cellW, uint &cellH, btBitmapBuffer glyBuff)
+{
+	//store the metrics of glyphs
+	int minx, maxx, miny, maxy, advance;
+
+	//defalt glyph color whyte font an bagroud whit alpha 
+	SDL_Color fg = { 0xFF, 0xFF, 0xFF, 0xFF };
+	SDL_Color bg = { 0xFF, 0xFF, 0xFF, 0x00 };
+
+	glyphInfo_t *newGlyph = new(TAG_FONT)glyphInfo_t;
+	float scaled_width, scaled_height;
+
+	SDL_Surface *bitmap = NULL;
+
+	bitmap = TTF_RenderGlyph_Shaded(m_fontData, c, fg, bg);
+	TTF_GlyphMetrics(m_fontData, c, &minx, &maxx, &miny, &maxy, &advance);
+	
+	newGlyph->xSkip = advance;
+	newGlyph->width = bitmap->w;
+	newGlyph->height = bitmap->h;
+	//set the glyph alignament
+	newGlyph->left = minx;
+	newGlyph->top = maxy;
+
+	//copy the glyph bitmap data to the swap buffer
+	glyBuff.copyPixels((byte*)bitmap->pixels, bitmap->w, bitmap->h);
+
+	// Calculate max width
+	if (bitmap->w  > cellW)
+		cellW = bitmap->w;
+
+	// Calculate max width
+	if (bitmap->h > cellH)
+		cellH = bitmap->h;
+
+	//free the surface
+	SDL_free(bitmap);
+	bitmap = NULL;
+
+	return newGlyph;
+}
+
+/*
+==============================
+LoadOldGlyphData
+==============================
+*/
+bool idFont::LoadOldGlyphData(const char * filename, oldGlyphInfo_t glyphInfo[GLYPHS_PER_FONT])
+{
+	idFile* fd = fileSystem->OpenFileRead(filename);
+	if (fd == NULL)
+		return false;
+
+	fd->Read(glyphInfo, GLYPHS_PER_FONT * sizeof(oldGlyphInfo_t));
+	for (int i = 0; i < GLYPHS_PER_FONT; i++)
+	{
+		idSwap::Little(glyphInfo[i].height);
+		idSwap::Little(glyphInfo[i].top);
+		idSwap::Little(glyphInfo[i].bottom);
+		idSwap::Little(glyphInfo[i].pitch);
+		idSwap::Little(glyphInfo[i].xSkip);
+		idSwap::Little(glyphInfo[i].imageWidth);
+		idSwap::Little(glyphInfo[i].imageHeight);
+		idSwap::Little(glyphInfo[i].s);
+		idSwap::Little(glyphInfo[i].t);
+		idSwap::Little(glyphInfo[i].s2);
+		idSwap::Little(glyphInfo[i].t2);
+		assert(glyphInfo[i].imageWidth == glyphInfo[i].pitch);
+		assert(glyphInfo[i].imageHeight == glyphInfo[i].height);
+		assert(glyphInfo[i].imageWidth == (glyphInfo[i].s2 - glyphInfo[i].s) * 256);
+		assert(glyphInfo[i].imageHeight == (glyphInfo[i].t2 - glyphInfo[i].t) * 256);
+		assert(glyphInfo[i].junk == 0);
+	}
+	delete fd;
+	return true;
+}
+
 /*
 ==============================
 idFont::GetGlyphIndex
@@ -313,17 +504,12 @@ idFont::GetGlyphIndex
 int	idFont::GetGlyphIndex( uint32 idx ) const
 {
 	if( idx < 128 )
-	{
 		return fontInfo->ascii[idx];
-	}
 	if( fontInfo->numGlyphs == 0 )
-	{
 		return -1;
-	}
 	if( fontInfo->charIndex == NULL )
-	{
 		return idx;
-	}
+
 	int len = fontInfo->numGlyphs;
 	int mid = fontInfo->numGlyphs;
 	int offset = 0;
@@ -331,9 +517,8 @@ int	idFont::GetGlyphIndex( uint32 idx ) const
 	{
 		mid = len >> 1;
 		if( fontInfo->charIndex[offset + mid] <= idx )
-		{
 			offset += mid;
-		}
+
 		len -= mid;
 	}
 	return ( fontInfo->charIndex[offset] == idx ) ? offset : -1;
@@ -347,13 +532,10 @@ idFont::GetLineHeight
 float idFont::GetLineHeight( float scale ) const
 {
 	if( alias != NULL )
-	{
 		return alias->GetLineHeight( scale );
-	}
 	if( fontInfo != NULL )
-	{
 		return scale * Old_SelectValueForScale( scale, fontInfo->oldInfo[0].maxHeight, fontInfo->oldInfo[1].maxHeight, fontInfo->oldInfo[2].maxHeight );
-	}
+	
 	return 0.0f;
 }
 
@@ -365,13 +547,9 @@ idFont::GetAscender
 float idFont::GetAscender( float scale ) const
 {
 	if( alias != NULL )
-	{
 		return alias->GetAscender( scale );
-	}
 	if( fontInfo != NULL )
-	{
 		return scale * fontInfo->ascender;
-	}
 	return 0.0f;
 }
 
@@ -383,13 +561,11 @@ idFont::GetMaxCharWidth
 float idFont::GetMaxCharWidth( float scale ) const
 {
 	if( alias != NULL )
-	{
 		return alias->GetMaxCharWidth( scale );
-	}
+
 	if( fontInfo != NULL )
-	{
 		return scale * Old_SelectValueForScale( scale, fontInfo->oldInfo[0].maxWidth, fontInfo->oldInfo[1].maxWidth, fontInfo->oldInfo[2].maxWidth );
-	}
+	
 	return 0.0f;
 }
 
@@ -401,21 +577,17 @@ idFont::GetGlyphWidth
 float idFont::GetGlyphWidth( float scale, uint32 idx ) const
 {
 	if( alias != NULL )
-	{
 		return alias->GetGlyphWidth( scale, idx );
-	}
+
 	if( fontInfo != NULL )
 	{
 		int i = GetGlyphIndex( idx );
 		const int asterisk = 42;
 		if( i == -1 && idx != asterisk )
-		{
 			i = GetGlyphIndex( asterisk );
-		}
+
 		if( i >= 0 )
-		{
 			return scale * fontInfo->glyphData[i].xSkip;
-		}
 	}
 	return 0.0f;
 }
@@ -428,17 +600,14 @@ idFont::GetScaledGlyph
 void idFont::GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t& glyphInfo ) const
 {
 	if( alias != NULL )
-	{
 		return alias->GetScaledGlyph( scale, idx, glyphInfo );
-	}
+
 	if( fontInfo != NULL )
 	{
 		int i = GetGlyphIndex( idx );
 		const int asterisk = 42;
 		if( i == -1 && idx != asterisk )
-		{
 			i = GetGlyphIndex( asterisk );
-		}
 		if( i >= 0 )
 		{
 			float invMaterialWidth = 1.0f / fontInfo->material->GetImageWidth();
@@ -468,12 +637,12 @@ idFont::Touch
 void idFont::Touch()
 {
 	if( alias != NULL )
-	{
 		alias->Touch();
-	}
+
 	if( fontInfo != NULL )
 	{
 		const_cast<idMaterial*>( fontInfo->material )->EnsureNotPurged();
 		fontInfo->material->SetSort( SS_GUI );
 	}
 }
+

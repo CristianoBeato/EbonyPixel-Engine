@@ -91,7 +91,7 @@ idLobby::UpdateHostMigration
 void idLobby::UpdateHostMigration()
 {
 
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	// If we are picking a new host, then update that
 	if( migrationInfo.state == MIGRATE_PICKING_HOST )
@@ -302,7 +302,7 @@ void idLobby::PickNewHostInternal( bool forceMe, bool inviteOldHost )
 	
 	// Remember when we first started picking a new host
 	migrationInfo.state						= MIGRATE_PICKING_HOST;
-	migrationInfo.migrationStartTime		= Sys_Milliseconds();
+	migrationInfo.migrationStartTime		= sys->Milliseconds();
 	
 	migrationInfo.persistUntilGameEndsData.wasMigratedGame = sessionCB->GetState() == idSession::INGAME;
 	
@@ -359,7 +359,7 @@ void idLobby::BecomeHost()
 	idLib::Printf( "BecomeHost: Sending %i invites on %s.\n", migrationInfo.invites.Num(), GetLobbyName() );
 	
 	migrationInfo.state					= MIGRATE_BECOMING_HOST;
-	migrationInfo.migrationStartTime	= Sys_Milliseconds();
+	migrationInfo.migrationStartTime	= sys->Milliseconds();
 	
 	if( lobbyBackend == NULL )
 	{
@@ -567,7 +567,7 @@ void idLobby::SendMigrationGameData()
 		return;
 	}
 	
-	const int now = Sys_Milliseconds();
+	const int now = sys->Milliseconds();
 	if( nextSendMigrationGameTime > now )
 	{
 		return;

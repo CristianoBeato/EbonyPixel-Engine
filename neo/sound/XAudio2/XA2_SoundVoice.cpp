@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 #pragma hdrstop
 #include "precompiled.h"
-#include "../snd_local.h"
+#include "sound/snd_local.h"
 
 idCVar s_skipHardwareSets( "s_skipHardwareSets", "0", CVAR_BOOL, "Do all calculation, but skip XA2 calls" );
 idCVar s_debugHardware( "s_debugHardware", "0", CVAR_BOOL, "Print a message any time a hardware voice changes" );
@@ -144,11 +144,11 @@ void idSoundVoice_XAudio2::Create( const idSoundSample* leadinSample_, const idS
 		{
 			if( loopingSample == NULL || loopingSample == leadinSample )
 			{
-				idLib::Printf( "%dms: %p created for %s\n", Sys_Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>" );
+				idLib::Printf( "%dms: %p created for %s\n", sys->Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>" );
 			}
 			else
 			{
-				idLib::Printf( "%dms: %p created for %s and %s\n", Sys_Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>", loopingSample ? loopingSample->GetName() : "<null>" );
+				idLib::Printf( "%dms: %p created for %s and %s\n", sys->Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>", loopingSample ? loopingSample->GetName() : "<null>" );
 			}
 		}
 	}
@@ -168,7 +168,7 @@ void idSoundVoice_XAudio2::DestroyInternal()
 	{
 		if( s_debugHardware.GetBool() )
 		{
-			idLib::Printf( "%dms: %p destroyed\n", Sys_Milliseconds(), pSourceVoice );
+			idLib::Printf( "%dms: %p destroyed\n", sys->Milliseconds(), pSourceVoice );
 		}
 		pSourceVoice->DestroyVoice();
 		pSourceVoice = NULL;
@@ -186,7 +186,7 @@ void idSoundVoice_XAudio2::Start( int offsetMS, int ssFlags )
 
 	if( s_debugHardware.GetBool() )
 	{
-		idLib::Printf( "%dms: %p starting %s @ %dms\n", Sys_Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>", offsetMS );
+		idLib::Printf( "%dms: %p starting %s @ %dms\n", sys->Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>", offsetMS );
 	}
 	
 	if( !leadinSample )
@@ -408,7 +408,7 @@ void idSoundVoice_XAudio2::Pause()
 	}
 	if( s_debugHardware.GetBool() )
 	{
-		idLib::Printf( "%dms: %p pausing %s\n", Sys_Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>" );
+		idLib::Printf( "%dms: %p pausing %s\n", sys->Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>" );
 	}
 	pSourceVoice->Stop( 0, OPERATION_SET );
 	paused = true;
@@ -427,7 +427,7 @@ void idSoundVoice_XAudio2::UnPause()
 	}
 	if( s_debugHardware.GetBool() )
 	{
-		idLib::Printf( "%dms: %p unpausing %s\n", Sys_Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>" );
+		idLib::Printf( "%dms: %p unpausing %s\n", sys->Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>" );
 	}
 	pSourceVoice->Start( 0, OPERATION_SET );
 	paused = false;
@@ -448,7 +448,7 @@ void idSoundVoice_XAudio2::Stop()
 	{
 		if( s_debugHardware.GetBool() )
 		{
-			idLib::Printf( "%dms: %p stopping %s\n", Sys_Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>" );
+			idLib::Printf( "%dms: %p stopping %s\n", sys->Milliseconds(), pSourceVoice, leadinSample ? leadinSample->GetName() : "<null>" );
 		}
 		pSourceVoice->Stop( 0, OPERATION_SET );
 		paused = true;

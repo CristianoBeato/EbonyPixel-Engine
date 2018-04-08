@@ -28,10 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "tr_local.h"
+#include "Image/Image_loader.h"
 
 idRenderSystemLocal	tr;
 idRenderSystem* renderSystem = &tr;
@@ -313,14 +314,6 @@ static void R_CheckCvars()
 				glDisable( GL_MULTISAMPLE );
 				break;
 		}
-	}
-
-	if (r_useHDR.IsModified() || r_useHalfLambertLighting.IsModified() )
-	{
-		r_useHDR.ClearModified();
-		r_useHalfLambertLighting.ClearModified();
-		renderProgManager.KillAllShaders();
-		renderProgManager.LoadAllShaders();
 	}
 	
 	// RB: turn off shadow mapping for OpenGL drivers that are too slow
@@ -877,7 +870,7 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 //	primaryWorld = NULL;
 
 	// set the time for shader effects in 2D rendering
-	frameShaderTime = Sys_Milliseconds() * 0.001;
+	frameShaderTime = sys->Milliseconds() * 0.001;
 	
 	setBufferCommand_t* cmd2 = ( setBufferCommand_t* )R_GetCommandBuffer( sizeof( *cmd2 ) );
 	cmd2->commandId = RC_SET_BUFFER;
@@ -1114,8 +1107,9 @@ void idRenderSystemLocal::CaptureRenderToFile( const char* fileName, bool fixAlp
 		data2[ i * 4 + 3 ] = 0xff;
 	}
 	
-	R_WriteTGA( fileName, data2, rc.GetWidth(), rc.GetHeight(), true );
-	
+	//R_WriteTGA( fileName, data2, rc.GetWidth(), rc.GetHeight(), true );
+	R_WriteImage(fileName, data2, rc.GetWidth(), rc.GetHeight(), TGA, true);
+
 	R_StaticFree( data );
 	R_StaticFree( data2 );
 }

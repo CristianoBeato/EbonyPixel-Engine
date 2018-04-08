@@ -29,6 +29,15 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
+#include "EventLoop.h"
+
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "KeyInput.h"
+#endif // GAME_DLL
+//Beato End
+
+
 idCVar idEventLoop::com_journal( "com_journal", "0", CVAR_INIT | CVAR_SYSTEM, "1 = record journal, 2 = play back journal", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
 
 idEventLoop eventLoopLocal;
@@ -86,7 +95,7 @@ sysEvent_t	idEventLoop::GetRealEvent()
 	}
 	else
 	{
-		ev = Sys_GetEvent();
+		ev = sys->GetEvent();
 		
 		// write the journal value out if needed
 		if( com_journal.GetInteger() == 1 )
@@ -232,7 +241,7 @@ idEventLoop::Init
 void idEventLoop::Init()
 {
 
-	initialTimeOffset = Sys_Milliseconds();
+	initialTimeOffset = sys->Milliseconds();
 	
 	common->StartupVariable( "journal" );
 	
@@ -287,7 +296,7 @@ Can be used for profiling, but will be journaled accurately
 int idEventLoop::Milliseconds()
 {
 #if 1	// FIXME!
-	return Sys_Milliseconds() - initialTimeOffset;
+	return sys->Milliseconds() - initialTimeOffset;
 #else
 	sysEvent_t	ev;
 	

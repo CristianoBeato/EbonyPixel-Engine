@@ -32,15 +32,17 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "Common_local.h"
-#include "../renderer/Image.h" // now I did it!
-#include "../renderer/ImageOpts.h"
+#include "renderer/Image/Image.h" // now I did it!
+#include "renderer/Image/ImageOpts.h"
 
-// RB begin
-#if defined(USE_DOOMCLASSIC)
-#include "../../doomclassic/doom/doomlib.h"
-#include "../../doomclassic/doom/globaldata.h"
-#endif
-// RB end
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "Console.h"
+#	include "Common_dialog.h"
+#	include "EventLoop.h"
+#endif // GAME_DLL
+//Beato End
+
 
 /*
 
@@ -92,12 +94,12 @@ be called directly in the foreground thread for comparison.
 */
 int idGameThread::Run()
 {
-	commonLocal.frameTiming.startGameTime = Sys_Microseconds();
+	commonLocal.frameTiming.startGameTime = sys->Microseconds();
 	
 	// debugging tool to test frame dropping behavior
 	if( com_sleepGame.GetInteger() )
 	{
-		Sys_Sleep( com_sleepGame.GetInteger() );
+		sys->Sleep( com_sleepGame.GetInteger() );
 	}
 	
 	if( numGameFrames == 0 )
@@ -142,19 +144,13 @@ int idGameThread::Run()
 	// we should have consumed all of our usercmds
 	if( userCmdMgr )
 	{
-		// RB begin
-#if defined(USE_DOOMCLASSIC)
-		if( userCmdMgr->HasUserCmdForPlayer( game->GetLocalClientNum() ) && common->GetCurrentGame() == DOOM3_BFG )
-#else
 		if( userCmdMgr->HasUserCmdForPlayer( game->GetLocalClientNum() ) )
-#endif
-			// RB end
 		{
 			idLib::Printf( "idGameThread::Run: didn't consume all usercmds\n" );
 		}
 	}
 	
-	commonLocal.frameTiming.finishGameTime = Sys_Microseconds();
+	commonLocal.frameTiming.finishGameTime = sys->Microseconds();
 	
 	SetThreadGameTime( ( commonLocal.frameTiming.finishGameTime - commonLocal.frameTiming.startGameTime ) / 1000 );
 	
@@ -164,7 +160,7 @@ int idGameThread::Run()
 		commonLocal.Draw();
 	}
 	
-	commonLocal.frameTiming.finishDrawTime = Sys_Microseconds();
+	commonLocal.frameTiming.finishDrawTime = sys->Microseconds();
 	
 	SetThreadRenderTime( ( commonLocal.frameTiming.finishDrawTime - commonLocal.frameTiming.finishGameTime ) / 1000 );
 	
@@ -225,7 +221,7 @@ void idCommonLocal::DrawWipeModel()
 		return;
 	}
 	
-	int currentTime = Sys_Milliseconds();
+	int currentTime = sys->Milliseconds();
 	
 	if( !wipeHold && currentTime > wipeStopTime )
 	{
@@ -247,12 +243,12 @@ void idCommonLocal::Draw()
 	// debugging tool to test frame dropping behavior
 	if( com_sleepDraw.GetInteger() )
 	{
-		Sys_Sleep( com_sleepDraw.GetInteger() );
+		sys->Sleep( com_sleepDraw.GetInteger() );
 	}
 	
 	if( loadGUI != NULL )
 	{
-		loadGUI->Render( renderSystem, Sys_Milliseconds() );
+		loadGUI->Render( renderSystem, sys->Milliseconds() );
 	}
 	// RB begin
 #if defined(USE_DOOMCLASSIC)
@@ -305,12 +301,12 @@ void idCommonLocal::Draw()
 		if( !com_skipGameDraw.GetBool() && Game()->GetLocalClientNum() >= 0 )
 		{
 			// draw the game view
-			int	start = Sys_Milliseconds();
+			int	start = sys->Milliseconds();
 			if( game )
 			{
 				gameDraw = game->Draw( Game()->GetLocalClientNum() );
 			}
-			int end = Sys_Milliseconds();
+			int end = sys->Milliseconds();
 			time_gameDraw += ( end - start );	// note time used for com_speeds
 		}
 		if( !gameDraw )
@@ -366,7 +362,7 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 	
 	// release the mouse capture back to the desktop
 	if( releaseMouse )
-		Sys_GrabMouseCursor( false );
+		sys->GrabMouseCursor( false );
 	// DG end
 	
 	// build all the draw commands without running a new game tic
@@ -395,13 +391,13 @@ void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 	// set joystick rumble
 	if( in_useJoystick.GetBool() && in_joystickRumble.GetBool() && !game->Shell_IsActive() && session->GetSignInManager().GetMasterInputDevice() >= 0 )
 	{
-		Sys_SetRumble( session->GetSignInManager().GetMasterInputDevice(), ret.vibrationLow, ret.vibrationHigh );		// Only set the rumble on the active controller
+		sys->SetRumble( session->GetSignInManager().GetMasterInputDevice(), ret.vibrationLow, ret.vibrationHigh );		// Only set the rumble on the active controller
 	}
 	else
 	{
 		for( int i = 0; i < MAX_INPUT_DEVICES; i++ )
 		{
-			Sys_SetRumble( i, 0, 0 );
+			sys->SetRumble( i, 0, 0 );
 		}
 	}
 	
@@ -414,34 +410,23 @@ void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 		args.TokenizeString( ret.sessionCommand, false );
 		
 		if( !idStr::Icmp( args.Argv( 0 ), "map" ) )
-		{
 			MoveToNewMap( args.Argv( 1 ), false );
-		}
+
 		else if( !idStr::Icmp( args.Argv( 0 ), "devmap" ) )
-		{
 			MoveToNewMap( args.Argv( 1 ), true );
-		}
+
 		else if( !idStr::Icmp( args.Argv( 0 ), "died" ) )
 		{
 			if( !IsMultiplayer() )
-			{
 				game->Shell_Show( true );
-			}
 		}
 		else if( !idStr::Icmp( args.Argv( 0 ), "disconnect" ) )
-		{
 			cmdSystem->BufferCommandText( CMD_EXEC_INSERT, "stoprecording ; disconnect" );
-		}
+
 		else if( !idStr::Icmp( args.Argv( 0 ), "endOfDemo" ) )
-		{
 			cmdSystem->BufferCommandText( CMD_EXEC_NOW, "endOfDemo" );
-		}
 	}
 }
-
-extern idCVar com_forceGenericSIMD;
-
-extern idCVar com_pause;
 
 /*
 =================
@@ -464,16 +449,8 @@ void idCommonLocal::Frame()
 			com_forceGenericSIMD.ClearModified();
 		}
 		
-		// RB begin
-#if defined(USE_DOOMCLASSIC)
-		// Do the actual switch between Doom 3 and the classics here so
-		// that things don't get confused in the middle of the frame.
-		PerformGameSwitch();
-#endif
-		// RB end
-		
 		// pump all the events
-		Sys_GenerateEvents();
+		sys->GenerateEvents();
 		
 		// write config file if anything changed
 		WriteConfiguration();
@@ -490,45 +467,28 @@ void idCommonLocal::Frame()
 		// if the console or another gui is down, we don't need to hold the mouse cursor
 		bool chatting = false;
 		
-		// DG: Add pause from com_pause cvar
-		// RB begin
-#if defined(USE_DOOMCLASSIC)
-		if( com_pause.GetInteger() || console->Active() || Dialog().IsDialogActive() || session->IsSystemUIShowing()
-				|| ( game && game->InhibitControls() && !IsPlayingDoomClassic() ) )
-#else
 		if( com_pause.GetInteger() || console->Active() || Dialog().IsDialogActive() || session->IsSystemUIShowing()
 				|| ( game && game->InhibitControls() ) )
-#endif
-			// RB end, DG end
 		{
 			// RB: don't release the mouse when opening a PDA or menu
 			if( console->Active() )
 			{
-				Sys_GrabMouseCursor( false );
+				sys->GrabMouseCursor( false );
 			}
 			usercmdGen->InhibitUsercmd( INHIBIT_SESSION, true );
 			chatting = true;
 		}
 		else
 		{
-			Sys_GrabMouseCursor( true );
+			sys->GrabMouseCursor( true );
 			usercmdGen->InhibitUsercmd( INHIBIT_SESSION, false );
 		}
 		
-		// RB begin
-#if defined(USE_DOOMCLASSIC)
-		const bool pauseGame = ( !mapSpawned
-								 || ( !IsMultiplayer()
-									  && ( Dialog().IsDialogPausing() || session->IsSystemUIShowing()
-										   || ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) )
-							   && !IsPlayingDoomClassic();
-#else
 		const bool pauseGame = ( !mapSpawned
 								 || ( !IsMultiplayer()
 									  && ( Dialog().IsDialogPausing() || session->IsSystemUIShowing()
 										   || ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) );
-#endif
-		// RB end
+
 		
 		// save the screenshot and audio from the last draw if needed
 		if( aviCaptureMode )
@@ -553,19 +513,17 @@ void idCommonLocal::Frame()
 		//--------------------------------------------
 		// this should exit right after vsync, with the GPU idle and ready to draw
 		// This may block if the GPU isn't finished renderng the previous frame.
-		frameTiming.startSyncTime = Sys_Microseconds();
+		frameTiming.startSyncTime = sys->Microseconds();
 		const emptyCommand_t* renderCommands = NULL;
 		if( com_smp.GetBool() )
-		{
 			renderCommands = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
-		}
 		else
 		{
 			// the GPU will stay idle through command generation for minimal
 			// input latency
 			renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 		}
-		frameTiming.finishSyncTime = Sys_Microseconds();
+		frameTiming.finishSyncTime = sys->Microseconds();
 		
 		//--------------------------------------------
 		// Determine how many game tics we are going to run,
@@ -598,7 +556,7 @@ void idCommonLocal::Frame()
 		
 		for( ;; )
 		{
-			const int thisFrameTime = Sys_Milliseconds();
+			const int thisFrameTime = sys->Milliseconds();
 			static int lastFrameTime = thisFrameTime;	// initialized only the first time
 			const int deltaMilliseconds = thisFrameTime - lastFrameTime;
 			lastFrameTime = thisFrameTime;
@@ -672,7 +630,7 @@ void idCommonLocal::Frame()
 			// not enough time has passed to run a frame, as might happen if
 			// we don't have vsync on, or the monitor is running at 120hz while
 			// com_engineHz is 60, so sleep a bit and check again
-			Sys_Sleep( 0 );
+			sys->Sleep( 0 );
 		}
 		
 		// jpcy: playDemo uses the game frame wait logic, but shouldn't run any game frames
@@ -734,8 +692,8 @@ void idCommonLocal::Frame()
 		{
 			for( int i = 0; i < MAX_INPUT_DEVICES; i++ )
 			{
-				Sys_PollJoystickInputEvents( i );
-				Sys_EndJoystickInputEvents();
+				sys->PollJoystickInputEvents( i );
+				sys->EndJoystickInputEvents();
 			}
 		}
 		if( pauseGame )
@@ -790,14 +748,14 @@ void idCommonLocal::Frame()
 		// Run the render back end, getting the GPU busy with new commands
 		// ASAP to minimize the pipeline bubble.
 		//----------------------------------------
-		frameTiming.startRenderTime = Sys_Microseconds();
+		frameTiming.startRenderTime = sys->Microseconds();
 		renderSystem->RenderCommandBuffers( renderCommands );
 		if( com_sleepRender.GetInteger() > 0 )
 		{
 			// debug tool to test frame adaption
-			Sys_Sleep( com_sleepRender.GetInteger() );
+			sys->Sleep( com_sleepRender.GetInteger() );
 		}
-		frameTiming.finishRenderTime = Sys_Microseconds();
+		frameTiming.finishRenderTime = sys->Microseconds();
 		
 		// make sure the game / draw thread has completed
 		// This may block if the game is taking longer than the render back end
@@ -831,21 +789,17 @@ void idCommonLocal::Frame()
 		if( lobby.HasActivePeers() )
 		{
 			if( net_drawDebugHud.GetInteger() == 1 )
-			{
 				lobby.DrawDebugNetworkHUD();
-			}
 			if( net_drawDebugHud.GetInteger() == 2 )
-			{
 				lobby.DrawDebugNetworkHUD2();
-			}
 			lobby.DrawDebugNetworkHUD_ServerSnapshotMetrics( net_drawDebugHud.GetInteger() == 3 );
 		}
 		
 		// report timing information
 		if( com_speeds.GetBool() )
 		{
-			static int lastTime = Sys_Milliseconds();
-			int	nowTime = Sys_Milliseconds();
+			static int lastTime = sys->Milliseconds();
+			int	nowTime = sys->Milliseconds();
 			int	com_frameMsec = nowTime - lastTime;
 			lastTime = nowTime;
 			Printf( "frame:%d all:%3d gfr:%3d rf:%3lld bk:%3lld\n", idLib::frameNumber, com_frameMsec, time_gameFrame, time_frontend / 1000, time_backend / 1000 );
@@ -854,9 +808,9 @@ void idCommonLocal::Frame()
 		}
 		
 		// the FPU stack better be empty at this point or some bad code or compiler bug left values on the stack
-		if( !Sys_FPU_StackIsEmpty() )
+		if( !sys->FPU_StackIsEmpty() )
 		{
-			Printf( "%s", Sys_FPU_GetState() );
+			Printf( "%s", sys->FPU_GetState() );
 			FatalError( "idCommon::Frame: the FPU stack is not empty at the end of the frame\n" );
 		}
 		

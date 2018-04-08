@@ -27,10 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include "idlib/precompiled.h"
 #pragma hdrstop
-#include "../renderer/Image.h"
 
+#include "renderer/Image/Image.h"
 
 
 class OBJExporter
@@ -170,7 +170,6 @@ void OBJExporter::Write( const char* relativePath, const char* basePath )
 	}
 }
 
-
 void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush, int entityNum, int primitiveNum, const idMat4& transform )
 {
 	OBJExporter::OBJObject& geometry = group.objects.Alloc();
@@ -190,10 +189,10 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 	idBounds bounds;
 	bounds.Clear();
 	
+	//int numIndexes = 0;
 	int numVerts = 0;
-	int numIndexes = 0;
-	
 	bool badBrush = false;
+	
 	
 	
 	
@@ -315,7 +314,6 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 	}
 }
 
-
 void OBJExporter::ConvertPatchToOBJ( OBJGroup& group, const idMapPatch* patch, int entityNum, int primitiveNum, const idMat4& transform )
 {
 	OBJExporter::OBJObject& geometry = group.objects.Alloc();
@@ -420,7 +418,6 @@ void OBJExporter::ConvertMeshToOBJ( OBJGroup& group, const MapPolygonMesh* mesh,
 		numVerts += verts.Num();
 	}
 }
-
 
 CONSOLE_COMMAND( exportMapToOBJ, "Convert .map file to .obj/.mtl ", idCmdSystem::ArgCompletion_MapName )
 {

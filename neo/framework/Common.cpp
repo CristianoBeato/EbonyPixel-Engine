@@ -31,23 +31,24 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "Common_local.h"
-
 #include "ConsoleHistory.h"
+#include "sound/sound.h"
+#include "sys/sys_savegame.h"
+#include "renderer/Image/ImageManager.h"
 
-#include "../sound/sound.h"
-
-// RB begin
-#if defined(USE_DOOMCLASSIC)
-#include "../../doomclassic/doom/doomlib.h"
-#include "../../doomclassic/doom/d_event.h"
-#include "../../doomclassic/doom/d_main.h"
-#endif
-// RB end
-
-
-#include "../sys/sys_savegame.h"
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "Common_dialog.h"
+#	include "Console.h"
+#	include "EventLoop.h"
+#	include "KeyInput.h"
+#endif // GAME_DLL
+//Beato End
 
 
+#if _ID_ALLOW_TOOLS_
+#	include "tools/compilers/compiler_public.h"
+#endif //!_ID_ALLOW_TOOLS_
 
 #if defined( _DEBUG )
 #define BUILD_DEBUG "-debug"
@@ -823,7 +824,7 @@ CONSOLE_COMMAND( reloadLanguage, "reload language dict", NULL )
 	commonLocal.InitLanguageDict();
 }
 
-#include "../renderer/Image.h"
+#include "renderer/Image/Image.h"
 
 /*
 =================
@@ -901,26 +902,26 @@ void idCommonLocal::RenderBink( const char* path )
 	
 	idMaterial* material = const_cast<idMaterial*>( declManager->FindMaterial( "splashbink" ) );
 	material->Parse( materialText.c_str(), materialText.Length(), false );
-	material->ResetCinematicTime( Sys_Milliseconds() );
+	material->ResetCinematicTime(sys->Milliseconds() );
 	
 	// RB: FFmpeg might return the wrong play length so I changed the intro video to play max 30 seconds until finished
 	int cinematicLength = 30000; //material->CinematicLength();
 	int	mouseEvents[MAX_MOUSE_EVENTS][2];
 	
 	bool escapeEvent = false;
-	while( ( Sys_Milliseconds() <= ( material->GetCinematicStartTime() + cinematicLength ) ) && material->CinematicIsPlaying() )
+	while( (sys->Milliseconds() <= ( material->GetCinematicStartTime() + cinematicLength ) ) && material->CinematicIsPlaying() )
 	{
 		renderSystem->DrawStretchPic( chop, 0, imageWidth, renderSystem->GetVirtualHeight(), 0, 0, 1, 1, material );
 		const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 		renderSystem->RenderCommandBuffers( cmd );
 		
-		Sys_GenerateEvents();
+		sys->GenerateEvents();
 		
 		// queue system events ready for polling
-		Sys_GetEvent();
+		sys->GetEvent();
 		
 		// RB: allow to escape video by pressing anything
-		int numKeyEvents = Sys_PollKeyboardInputEvents();
+		int numKeyEvents = sys->PollKeyboardInputEvents();
 		if( numKeyEvents > 0 )
 		{
 			for( int i = 0; i < numKeyEvents; i++ )
@@ -928,7 +929,7 @@ void idCommonLocal::RenderBink( const char* path )
 				int key;
 				bool state;
 				
-				if( Sys_ReturnKeyboardInputEvent( i, key, state ) )
+				if(sys->ReturnKeyboardInputEvent( i, key, state ) )
 				{
 					if( key == K_ESCAPE && state == true )
 					{
@@ -938,10 +939,10 @@ void idCommonLocal::RenderBink( const char* path )
 				}
 			}
 			
-			Sys_EndKeyboardInputEvents();
+			sys->EndKeyboardInputEvents();
 		}
 		
-		int numMouseEvents = Sys_PollMouseInputEvents( mouseEvents );
+		int numMouseEvents = sys->PollMouseInputEvents( mouseEvents );
 		if( numMouseEvents > 0 )
 		{
 			for( int i = 0; i < numMouseEvents; i++ )
@@ -966,7 +967,7 @@ void idCommonLocal::RenderBink( const char* path )
 			}
 		}
 		
-		int numJoystickEvents = Sys_PollJoystickInputEvents( 0 );
+		int numJoystickEvents = sys->PollJoystickInputEvents( 0 );
 		if( numJoystickEvents > 0 )
 		{
 			for( int i = 0; i < numJoystickEvents; i++ )
@@ -974,7 +975,7 @@ void idCommonLocal::RenderBink( const char* path )
 				int action;
 				int value;
 				
-				if( Sys_ReturnJoystickInputEvent( i, action, value ) )
+				if(sys->ReturnJoystickInputEvent( 0, i, action, value ) )
 				{
 					if( action >= J_ACTION1 && action <= J_ACTION_MAX )
 					{
@@ -987,7 +988,7 @@ void idCommonLocal::RenderBink( const char* path )
 				}
 			}
 			
-			Sys_EndJoystickInputEvents();
+			sys->EndJoystickInputEvents();
 		}
 		
 		if( escapeEvent )
@@ -995,7 +996,7 @@ void idCommonLocal::RenderBink( const char* path )
 			break;
 		}
 		
-		Sys_Sleep( 10 );
+		sys->Sleep( 10 );
 	}
 	// RB end
 	
@@ -1028,7 +1029,7 @@ void idCommonLocal::LoadGameDLL()
 	gameExport_t	gameExport;
 	GetGameAPI_t	GetGameAPI;
 	
-	fileSystem->FindDLL( "game", dllPath, true );
+	fileSystem->FindDLL( "game", dllPath);
 	
 	if( !dllPath[ 0 ] )
 	{
@@ -1044,10 +1045,10 @@ void idCommonLocal::LoadGameDLL()
 	}
 	
 	const char* functionName = "GetGameAPI";
-	GetGameAPI = ( GetGameAPI_t ) Sys_DLL_GetProcAddress( gameDLL, functionName );
+	GetGameAPI = ( GetGameAPI_t ) sys->DLL_GetProcAddress( gameDLL, functionName );
 	if( !GetGameAPI )
 	{
-		Sys_DLL_Unload( gameDLL );
+		sys->DLL_Unload( gameDLL );
 		gameDLL = NULL;
 		common->FatalError( "couldn't find game DLL API" );
 		return;
@@ -1071,7 +1072,7 @@ void idCommonLocal::LoadGameDLL()
 	
 	if( gameExport.version != GAME_API_VERSION )
 	{
-		Sys_DLL_Unload( gameDLL );
+		sys->DLL_Unload( gameDLL );
 		gameDLL = NULL;
 		common->FatalError( "wrong game DLL API version" );
 		return;
@@ -1084,9 +1085,7 @@ void idCommonLocal::LoadGameDLL()
 	
 	// initialize the game object
 	if( game != NULL )
-	{
 		game->Init();
-	}
 }
 
 /*
@@ -1097,9 +1096,7 @@ idCommonLocal::UnloadGameDLL
 void idCommonLocal::CleanupShell()
 {
 	if( game != NULL )
-	{
 		game->Shell_Cleanup();
-	}
 }
 
 /*
@@ -1112,15 +1109,13 @@ void idCommonLocal::UnloadGameDLL()
 
 	// shut down the game object
 	if( game != NULL )
-	{
 		game->Shutdown();
-	}
 	
 #ifdef __DOOM_DLL__
 	
 	if( gameDLL )
 	{
-		Sys_DLL_Unload( gameDLL );
+		sys->DLL_Unload( gameDLL );
 		gameDLL = NULL;
 	}
 	game = NULL;
@@ -1185,7 +1180,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		// register all static CVars
 		idCVar::RegisterStaticVars();
 		
-		idLib::Printf( "QA Timing INIT: %06dms\n", Sys_Milliseconds() );
+		idLib::Printf( "QA Timing INIT: %06dms\n", sys->Milliseconds() );
 		
 		// print engine version
 		Printf( "%s\n", version.string );
@@ -1208,9 +1203,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		consoleUsed = com_allowConsole.GetBool();
 		
 		if( Sys_AlreadyRunning() )
-		{
 			Sys_Quit();
-		}
 		
 		// initialize processor specific SIMD implementation
 		InitSIMD();
@@ -1273,6 +1266,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		com_engineHz_latched = com_engineHz.GetFloat();
 		
 		// start the sound system, but don't do any hardware operations yet
+
 		soundSystem->Init();
 		
 		// initialize the renderSystem data structures
@@ -1280,23 +1274,17 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		
 		whiteMaterial = declManager->FindMaterial( "_white" );
 		
-		if( idStr::Icmp( sys_lang.GetString(), ID_LANG_FRENCH ) == 0 )
-		{
-			// If the user specified french, we show french no matter what SKU
-			splashScreen = declManager->FindMaterial( "guis/assets/splash/legal_french" );
-		}
-		else if( idStr::Icmp( defaultLang, ID_LANG_FRENCH ) == 0 )
-		{
-			// If the lead sku is french (ie: europe), display figs
-			splashScreen = declManager->FindMaterial( "guis/assets/splash/legal_figs" );
-		}
-		else
-		{
-			// Otherwise show it in english
-			splashScreen = declManager->FindMaterial( "guis/assets/splash/legal_english" );
-		}
+		if( idStr::Icmp( sys_lang.GetString(), ID_LANG_FRENCH ) == 0 ) // If the user specified french, we show french no matter what SKU
+			splashScreen = declManager->FindMaterial( "textures/common/hud/splash/legal_french" );
+		
+		else if( idStr::Icmp( defaultLang, ID_LANG_FRENCH ) == 0 ) // If the lead sku is french (ie: europe), display figs
+			splashScreen = declManager->FindMaterial( "textures/common/hud/splash/legal_figs" );
+				
+		else // Otherwise show it in english
+			splashScreen = declManager->FindMaterial( "textures/common/hud/splash/legal_english.tga" );
 		
 		const int legalMinTime = 4000;
+#if 0
 		const bool showVideo = ( !com_skipIntroVideos.GetBool() && fileSystem->UsingResourceFiles() );
 		if( showVideo )
 		{
@@ -1305,6 +1293,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 			RenderSplash();
 		}
 		else
+#endif
 		{
 			idLib::Printf( "Skipping Intro Videos!\n" );
 			// display the legal splash screen
@@ -1314,7 +1303,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		}
 		
 		
-		int legalStartTime = Sys_Milliseconds();
+		int legalStartTime = sys->Milliseconds();
 		declManager->Init2();
 		
 		// initialize string database so we can use it for loading messages
@@ -1330,7 +1319,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		// init the user command input code
 		usercmdGen->Init();
 		
-		Sys_SetRumble( 0, 0, 0 );
+		sys->SetRumble( 0, 0, 0 );
 		
 		// initialize the user interfaces
 		uiManager->Init();
@@ -1347,9 +1336,9 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		// On the PC touch them all so they get included in the resource build
 		if( !fileSystem->UsingResourceFiles() )
 		{
-			declManager->FindMaterial( "guis/assets/splash/legal_english" );
-			declManager->FindMaterial( "guis/assets/splash/legal_french" );
-			declManager->FindMaterial( "guis/assets/splash/legal_figs" );
+			declManager->FindMaterial( "textures/common/hud/splash/splash_english" );
+			declManager->FindMaterial( "textures/common/hud/splash/splash_french" );
+			declManager->FindMaterial( "textures/common/hud/splash/splash_figs" );
 			// register the japanese font so it gets included
 			renderSystem->RegisterFont( "DFPHeiseiGothicW7" );
 			// Make sure all videos get touched because you can bring videos from one map to another, they need to be included in all maps
@@ -1378,9 +1367,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		
 		// leaderboards need to be initialized after InitializeMPMapsModes, which populates the MP Map list.
 		if( game != NULL )
-		{
 			game->Leaderboards_Init();
-		}
 		
 		CreateMainMenu();
 		
@@ -1393,11 +1380,11 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		
 		StartMenu( true );
 		
-		while( Sys_Milliseconds() - legalStartTime < legalMinTime )
+		while(sys->Milliseconds() - legalStartTime < legalMinTime )
 		{
 			RenderSplash();
-			Sys_GenerateEvents();
-			Sys_Sleep( 10 );
+			sys->GenerateEvents();
+			sys->Sleep( 10 );
 		};
 		
 		// print all warnings queued during initialization
@@ -1419,24 +1406,6 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		
 		fileSystem->EndLevelLoad();
 		
-		// RB begin
-#if defined(USE_DOOMCLASSIC)
-		// Initialize support for Doom classic.
-		doomClassicMaterial = declManager->FindMaterial( "_doomClassic" );
-		idImage* image = globalImages->GetImage( "_doomClassic" );
-		if( image != NULL )
-		{
-			idImageOpts opts;
-			opts.format = FMT_RGBA8;
-			opts.colorFormat = CFM_DEFAULT;
-			opts.width = DOOMCLASSIC_RENDERWIDTH;
-			opts.height = DOOMCLASSIC_RENDERHEIGHT;
-			opts.numLevels = 1;
-			image->AllocImage( opts, TF_LINEAR, TR_REPEAT );
-		}
-#endif
-		// RB end
-		
 		com_fullyInitialized = true;
 		
 		
@@ -1447,15 +1416,13 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 			{
 				idImage* image = splashScreen->GetStage( i )->texture.image;
 				if( image != NULL )
-				{
 					image->PurgeImage();
-				}
 			}
 		}
 		
 		Printf( "--- Common Initialization Complete ---\n" );
 		
-		idLib::Printf( "QA Timing IIS: %06dms\n", Sys_Milliseconds() );
+		idLib::Printf( "QA Timing IIS: %06dms\n", sys->Milliseconds() );
 	}
 	catch( idException& )
 	{
@@ -1613,7 +1580,7 @@ idCommonLocal::CreateMainMenu
 ========================
 */
 void idCommonLocal::CreateMainMenu()
-{
+{ 
 	if( game != NULL )
 	{
 		// note which media we are going to need to load
@@ -1629,10 +1596,10 @@ void idCommonLocal::CreateMainMenu()
 		game->Shell_SyncWithSession();
 		
 		// load
-		renderSystem->EndLevelLoad();
-		soundSystem->EndLevelLoad();
-		declManager->EndLevelLoad();
 		uiManager->EndLevelLoad( "" );
+		soundSystem->EndLevelLoad();
+		renderSystem->EndLevelLoad();
+		declManager->EndLevelLoad();
 	}
 }
 
@@ -1671,7 +1638,7 @@ idCommonLocal::BusyWait
 */
 void idCommonLocal::BusyWait()
 {
-	Sys_GenerateEvents();
+	sys->GenerateEvents();
 	
 	const bool captureToImage = false;
 	UpdateScreen( captureToImage );
@@ -1688,11 +1655,14 @@ idCommonLocal::InitCommands
 */
 void idCommonLocal::InitCommands()
 {
+
+#ifdef _ID_ALLOW_TOOLS_
 	// compilers
 	cmdSystem->AddCommand( "dmap", Dmap_f, CMD_FL_TOOL, "compiles a map", idCmdSystem::ArgCompletion_MapName );
 	cmdSystem->AddCommand( "runAAS", RunAAS_f, CMD_FL_TOOL, "compiles an AAS file for a map", idCmdSystem::ArgCompletion_MapName );
 	cmdSystem->AddCommand( "runAASDir", RunAASDir_f, CMD_FL_TOOL, "compiles AAS files for all maps in a folder", idCmdSystem::ArgCompletion_MapName );
 	cmdSystem->AddCommand( "runReach", RunReach_f, CMD_FL_TOOL, "calculates reachability for an AAS file", idCmdSystem::ArgCompletion_MapName );
+#endif // _ID_ALLOW_TOOLS_
 }
 
 /*
@@ -1725,7 +1695,7 @@ bool idCommonLocal::WaitForSessionState( idSession::sessionState_t desiredState 
 			return false;
 		}
 		
-		Sys_Sleep( 10 );
+		sys->Sleep( 10 );
 	}
 }
 
@@ -1775,9 +1745,7 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 				
 					// menus / etc
 					if( MenuEvent( event ) )
-					{
 						return true;
-					}
 					
 					console->Close();
 					
@@ -1790,9 +1758,7 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 					
 					// menus / etc
 					if( MenuEvent( event ) )
-					{
 						return true;
-					}
 					
 					game->Shell_ClosePause();
 				}
@@ -1802,13 +1768,10 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 	
 	// let the pull-down console take it if desired
 	if( console->ProcessEvent( event, false ) )
-	{
 		return true;
-	}
+
 	if( session->ProcessInputEvent( event ) )
-	{
 		return true;
-	}
 	
 	if( Dialog().IsDialogActive() )
 	{
@@ -1816,49 +1779,9 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 		return true;
 	}
 	
-	// RB begin
-#if defined(USE_DOOMCLASSIC)
-	
-	// Let Doom classic run events.
-	if( IsPlayingDoomClassic() )
-	{
-		// Translate the event to Doom classic format.
-		event_t classicEvent;
-		if( event->evType == SE_KEY )
-		{
-		
-			if( event->evValue2 == 1 )
-			{
-				classicEvent.type = ev_keydown;
-			}
-			else if( event->evValue2 == 0 )
-			{
-				classicEvent.type = ev_keyup;
-			}
-			
-			DoomLib::SetPlayer( 0 );
-			
-			extern Globals* g;
-			if( g != NULL )
-			{
-				classicEvent.data1 =  DoomLib::RemapControl( event->GetKey() );
-				
-				D_PostEvent( &classicEvent );
-			}
-			DoomLib::SetPlayer( -1 );
-		}
-		
-		// Let the classics eat all events.
-		return true;
-	}
-#endif
-	// RB end
-	
 	// menus / etc
 	if( MenuEvent( event ) )
-	{
 		return true;
-	}
 	
 	// if we aren't in a game, force the console to take it
 	if( !mapSpawned )
@@ -1886,94 +1809,6 @@ void idCommonLocal::ResetPlayerInput( int playerIndex )
 {
 	userCmdMgr.ResetPlayer( playerIndex );
 }
-
-// RB begin
-#if defined(USE_DOOMCLASSIC)
-
-/*
-========================
-idCommonLocal::SwitchToGame
-========================
-*/
-void idCommonLocal::SwitchToGame( currentGame_t newGame )
-{
-	idealCurrentGame = newGame;
-}
-
-/*
-========================
-idCommonLocal::PerformGameSwitch
-========================
-*/
-void idCommonLocal::PerformGameSwitch()
-{
-	// If the session state is past the menu, we should be in Doom 3.
-	// This will happen if, for example, we accept an invite while playing
-	// Doom or Doom 2.
-	if( session->GetState() > idSession::IDLE )
-	{
-		idealCurrentGame = DOOM3_BFG;
-	}
-	
-	if( currentGame == idealCurrentGame )
-	{
-		return;
-	}
-	
-	const int DOOM_CLASSIC_HZ = 35;
-	
-	if( idealCurrentGame == DOOM_CLASSIC || idealCurrentGame == DOOM2_CLASSIC )
-	{
-		// Pause Doom 3 sound.
-		if( menuSoundWorld != NULL )
-		{
-			menuSoundWorld->Pause();
-		}
-		
-		DoomLib::skipToNew = false;
-		DoomLib::skipToLoad = false;
-		
-		// Reset match parameters for the classics.
-		DoomLib::matchParms = idMatchParameters();
-		
-		// The classics use the usercmd manager too, clear it.
-		userCmdMgr.SetDefaults();
-		
-		// Classics need a local user too.
-		session->UpdateSignInManager();
-		session->GetSignInManager().RegisterLocalUser( 0 );
-		
-		com_engineHz_denominator = 100LL * DOOM_CLASSIC_HZ;
-		com_engineHz_latched = DOOM_CLASSIC_HZ;
-		
-		DoomLib::SetCurrentExpansion( idealCurrentGame );
-		
-	}
-	else if( idealCurrentGame == DOOM3_BFG )
-	{
-		DoomLib::Interface.Shutdown();
-		com_engineHz_denominator = 100LL * com_engineHz.GetFloat();
-		com_engineHz_latched = com_engineHz.GetFloat();
-		
-		// Don't MoveToPressStart if we have an invite, we need to go
-		// directly to the lobby.
-		if( session->GetState() <= idSession::IDLE )
-		{
-			session->MoveToPressStart();
-		}
-		
-		// Unpause Doom 3 sound.
-		if( menuSoundWorld != NULL )
-		{
-			menuSoundWorld->UnPause();
-		}
-	}
-	
-	currentGame = idealCurrentGame;
-}
-
-#endif // #if defined(USE_DOOMCLASSIC)
-// RB end
 
 /*
 ==================
@@ -2016,11 +1851,11 @@ CONSOLE_COMMAND( hitch, "hitches the game", NULL )
 {
 	if( args.Argc() == 2 )
 	{
-		Sys_Sleep( atoi( args.Argv( 1 ) ) );
+		sys->Sleep( atoi( args.Argv( 1 ) ) );
 	}
 	else
 	{
-		Sys_Sleep( 100 );
+		sys->Sleep( 100 );
 	}
 }
 

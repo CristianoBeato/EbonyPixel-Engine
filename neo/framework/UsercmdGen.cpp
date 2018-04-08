@@ -29,6 +29,13 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "KeyInput.h"
+#endif // GAME_DLL
+//Beato End
+
+
 idCVar joy_mergedThreshold( "joy_mergedThreshold", "1", CVAR_BOOL | CVAR_ARCHIVE, "If the thresholds aren't merged, you drift more off center" );
 idCVar joy_newCode( "joy_newCode", "1", CVAR_BOOL | CVAR_ARCHIVE, "Use the new codepath" );
 idCVar joy_triggerThreshold( "joy_triggerThreshold", "0.05", CVAR_FLOAT | CVAR_ARCHIVE, "how far the joystick triggers have to be pressed before they register as down" );
@@ -640,10 +647,10 @@ void idUsercmdGenLocal::HandleJoystickAxis( int keyNum, float unclampedValue, fl
 		lookValue = idMath::Pow( value, joy_powerScale.GetFloat() );
 	}
 	
-	idGame* game = common->Game();
-	if( game != NULL )
+	idGame* gameCommon = common->Game();
+	if(gameCommon != NULL )
 	{
-		lookValue *= game->GetAimAssistSensitivity();
+		lookValue *= gameCommon->GetAimAssistSensitivity();
 	}
 	
 	switch( action )
@@ -945,7 +952,7 @@ void	DrawJoypadTexture(
 	{
 		float	s, c;
 		idMath::SinCos( rad, s, c );
-		for( int ringNum = 0 ; ringNum < NUM_RINGS ; ringNum++ )
+		for( ringNum = 0 ; ringNum < NUM_RINGS ; ringNum++ )
 		{
 			const float ringSize = ringSizes[ ringNum ];
 			const int	ix = idMath::Floor( ringSize * c );
@@ -1005,8 +1012,8 @@ void idUsercmdGenLocal::JoystickMove2()
 	const float pitchSpeed =		joy_pitchSpeed.GetFloat();
 	const float yawSpeed =			joy_yawSpeed.GetFloat();
 	
-	idGame* game = common->Game();
-	const float aimAssist = game != NULL ? game->GetAimAssistSensitivity() : 1.0f;
+	idGame* gameCommon = common->Game();
+	const float aimAssist = gameCommon != NULL ? gameCommon->GetAimAssistSensitivity() : 1.0f;
 	
 	idVec2 leftRaw( joystickAxis[ AXIS_LEFT_X ], joystickAxis[ AXIS_LEFT_Y ] );
 	idVec2 rightRaw( joystickAxis[ AXIS_RIGHT_X ], joystickAxis[ AXIS_RIGHT_Y ] );
@@ -1188,10 +1195,10 @@ void idUsercmdGenLocal::AimAssist()
 	// callback to the game to update the aim assist for the current device
 	idAngles aimAssistAngles( 0.0f, 0.0f, 0.0f );
 	
-	idGame* game = common->Game();
-	if( game != NULL )
+	idGame* gameCommon = common->Game();
+	if(gameCommon != NULL )
 	{
-		game->GetAimAssistAngles( aimAssistAngles );
+		gameCommon->GetAimAssistAngles( aimAssistAngles );
 	}
 	
 	viewangles[YAW] += aimAssistAngles.yaw;
@@ -1343,7 +1350,7 @@ void idUsercmdGenLocal::Mouse()
 {
 	int	mouseEvents[MAX_MOUSE_EVENTS][2];
 	
-	int numEvents = Sys_PollMouseInputEvents( mouseEvents );
+	int numEvents = sys->PollMouseInputEvents( mouseEvents );
 	
 	// Study each of the buffer elements and process them.
 	for( int i = 0; i < numEvents; i++ )
@@ -1409,20 +1416,20 @@ idUsercmdGenLocal::Keyboard
 void idUsercmdGenLocal::Keyboard()
 {
 
-	int numEvents = Sys_PollKeyboardInputEvents();
+	int numEvents = sys->PollKeyboardInputEvents();
 	
 	// Study each of the buffer elements and process them.
 	for( int i = 0; i < numEvents; i++ )
 	{
 		int key;
 		bool state;
-		if( Sys_ReturnKeyboardInputEvent( i, key, state ) )
+		if(sys->ReturnKeyboardInputEvent( i, key, state ) )
 		{
 			Key( key, state );
 		}
 	}
 	
-	Sys_EndKeyboardInputEvents();
+	sys->EndKeyboardInputEvents();
 }
 
 /*
@@ -1432,7 +1439,7 @@ idUsercmdGenLocal::Joystick
 */
 void idUsercmdGenLocal::Joystick( int deviceNum )
 {
-	int numEvents = Sys_PollJoystickInputEvents( deviceNum );
+	int numEvents = sys->PollJoystickInputEvents( deviceNum );
 	
 //	if(numEvents) {
 //		common->Printf("idUsercmdGenLocal::Joystick: numEvents = %i\n", numEvents);
@@ -1443,7 +1450,7 @@ void idUsercmdGenLocal::Joystick( int deviceNum )
 	{
 		int action;
 		int value;
-		if( Sys_ReturnJoystickInputEvent( i, action, value ) )
+		if(sys->ReturnJoystickInputEvent(deviceNum, i, action, value ) )
 		{
 //		common->Printf("idUsercmdGenLocal::Joystick: i = %i / action = %i / value = %i\n", i, action, value);
 
@@ -1468,7 +1475,7 @@ void idUsercmdGenLocal::Joystick( int deviceNum )
 		}
 	}
 	
-	Sys_EndJoystickInputEvents();
+	sys->EndJoystickInputEvents();
 }
 
 /*
@@ -1492,7 +1499,7 @@ idUsercmdGenLocal::BuildCurrentUsercmd
 void idUsercmdGenLocal::BuildCurrentUsercmd( int deviceNum )
 {
 
-	pollTime = Sys_Milliseconds();
+	pollTime = sys->Milliseconds();
 	if( pollTime - lastPollTime > 100 )
 	{
 		lastPollTime = pollTime - 100;

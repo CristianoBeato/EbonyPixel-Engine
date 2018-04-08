@@ -829,8 +829,8 @@ idMatX::Zero
 */
 ID_INLINE void idMatX::Zero()
 {
-	int s = numRows * numColumns;
 #ifdef MATX_SIMD
+	int s = numRows * numColumns;
 	for( int i = 0; i < s; i += 4 )
 	{
 		_mm_store_ps( mat + i, _mm_setzero_ps() );

@@ -27,11 +27,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-#include "../tr_local.h"
-#include "../../framework/Common_local.h"
+#include "renderer/tr_local.h"
+#include "framework/Common_local.h"
 
 idCVar r_drawFlickerBox( "r_drawFlickerBox", "0", CVAR_RENDERER | CVAR_BOOL, "visual test for dropping frames" );
 idCVar stereoRender_warp( "stereoRender_warp", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use the optical warping renderprog instead of stereoDeGhost" );
@@ -49,7 +49,6 @@ idCVar r_syncEveryFrame( "r_syncEveryFrame", "1", CVAR_BOOL, "Don't let the GPU 
 static int		swapIndex;		// 0 or 1 into renderSync
 static GLsync	renderSync[2];
 
-void GLimp_SwapBuffers();
 void RB_SetMVP( const idRenderMatrix& mvp );
 
 /*
@@ -134,22 +133,23 @@ const void GL_BlockingSwapBuffers()
 {
 	RENDERLOG_PRINTF( "***************** GL_BlockingSwapBuffers *****************\n\n\n" );
 	
-	const int beforeFinish = Sys_Milliseconds();
+	const int beforeFinish = sys->Milliseconds();
 	
 	if( !glConfig.syncAvailable )
 	{
 		glFinish();
 	}
 	
-	const int beforeSwap = Sys_Milliseconds();
+	const int beforeSwap = sys->Milliseconds();
 	if( r_showSwapBuffers.GetBool() && beforeSwap - beforeFinish > 1 )
 	{
 		common->Printf( "%i msec to glFinish\n", beforeSwap - beforeFinish );
 	}
 	
-	GLimp_SwapBuffers();
+	//GLimp_SwapBuffers();
+	sys->GLimpSwapBuffers();
 	
-	const int beforeFence = Sys_Milliseconds();
+	const int beforeFence = sys->Milliseconds();
 	if( r_showSwapBuffers.GetBool() && beforeFence - beforeSwap > 1 )
 	{
 		common->Printf( "%i msec to swapBuffers\n", beforeFence - beforeSwap );
@@ -164,12 +164,12 @@ const void GL_BlockingSwapBuffers()
 			glDeleteSync( renderSync[swapIndex] );
 		}
 		// draw something tiny to ensure the sync is after the swap
-		const int start = Sys_Milliseconds();
+		const int start = sys->Milliseconds();
 		glScissor( 0, 0, 1, 1 );
 		glEnable( GL_SCISSOR_TEST );
 		glClear( GL_COLOR_BUFFER_BIT );
 		renderSync[swapIndex] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
-		const int end = Sys_Milliseconds();
+		const int end = sys->Milliseconds();
 		if( r_showSwapBuffers.GetBool() && end - start > 1 )
 		{
 			common->Printf( "%i msec to start fence\n", end - start );
@@ -194,13 +194,13 @@ const void GL_BlockingSwapBuffers()
 		}
 	}
 	
-	const int afterFence = Sys_Milliseconds();
+	const int afterFence = sys->Milliseconds();
 	if( r_showSwapBuffers.GetBool() && afterFence - beforeFence > 1 )
 	{
 		common->Printf( "%i msec to wait on fence\n", afterFence - beforeFence );
 	}
 	
-	const int64 exitBlockTime = Sys_Microseconds();
+	const int64 exitBlockTime = sys->Microseconds();
 	
 	static int64 prevBlockTime;
 	if( r_showSwapBuffers.GetBool() && prevBlockTime )
@@ -235,7 +235,7 @@ Renders the draw list twice, with slight modifications for left eye / right eye
 */
 void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds )
 {
-	uint64 backEndStartTime = Sys_Microseconds();
+	uint64 backEndStartTime = sys->Microseconds();
 	
 	// If we are in a monoscopic context, this draws to the only buffer, and is
 	// the same as GL_BACK.  In a quad-buffer stereo context, this is necessary
@@ -531,7 +531,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 	// we may choose to sync to the swapbuffers before the next frame
 	
 	// stop rendering on this thread
-	uint64 backEndFinishTime = Sys_Microseconds();
+	uint64 backEndFinishTime = sys->Microseconds();
 	backEnd.pc.totalMicroSec = backEndFinishTime - backEndStartTime;
 }
 
@@ -567,7 +567,7 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 		return;
 	}
 	
-	uint64 backEndStartTime = Sys_Microseconds();
+	uint64 backEndStartTime = sys->Microseconds();
 	
 	// needed for editor rendering
 	GL_SetDefaultState();
@@ -620,7 +620,7 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 	glFlush();
 	
 	// stop rendering on this thread
-	uint64 backEndFinishTime = Sys_Microseconds();
+	uint64 backEndFinishTime = sys->Microseconds();
 	backEnd.pc.totalMicroSec = backEndFinishTime - backEndStartTime;
 	
 	if( r_debugRenderToTexture.GetInteger() == 1 )

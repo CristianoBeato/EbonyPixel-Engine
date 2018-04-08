@@ -326,7 +326,7 @@ bool idVoiceChatMgr::GetLocalChatData( int talkerIndex, byte* data, int& dataSiz
 	
 	// Mark the user as talking
 	talker.talking		= true;
-	talker.talkingTime	= Sys_Milliseconds();
+	talker.talkingTime	= sys->Milliseconds();
 	
 	return dataSize > 0 ? true : false;
 }
@@ -360,7 +360,7 @@ void idVoiceChatMgr::SubmitIncomingChatData( const byte* data, int dataSize )
 	{
 		// Mark the user as talking
 		talker.talking		= true;
-		talker.talkingTime	= Sys_Milliseconds();
+		talker.talkingTime	= sys->Milliseconds();
 		
 		SubmitIncomingChatDataInternal( i, voiceMsg.GetReadData() + voiceMsg.GetReadCount(), voiceMsg.GetRemainingData() );
 	}
@@ -392,7 +392,7 @@ voiceState_t idVoiceChatMgr::GetVoiceState( const lobbyUser_t* user )
 		return VOICECHAT_STATE_MUTED_LOCAL;
 	}
 	
-	if( talker.talking && Sys_Milliseconds() - talker.talkingTime > 200 )
+	if( talker.talking && sys->Milliseconds() - talker.talkingTime > 200 )
 	{
 		talker.talking = false;
 	}

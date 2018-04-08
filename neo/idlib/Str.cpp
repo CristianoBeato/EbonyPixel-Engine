@@ -1116,9 +1116,9 @@ idStr& idStr::SlashesToBackSlashes()
 	
 	for( i = 0; i < len; i++ )
 	{
-		if( data[ i ] == '/' )
+		if (data[i] == '/')
 		{
-			data[ i ] = '\\';
+			data[i] = '\\';
 		}
 	}
 	return *this;
@@ -2355,7 +2355,11 @@ char* va( const char* fmt, ... )
 	index = ( index + 1 ) & 3;
 	
 	va_start( argptr, fmt );
+#if 1
 	vsprintf( buf, fmt, argptr );
+#else
+	SDL_vsnprintf(buf, SDL_strlen(fmt), fmt, argptr);
+#endif
 	va_end( argptr );
 	
 	return buf;

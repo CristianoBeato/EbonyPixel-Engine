@@ -248,7 +248,7 @@ void idSessionLocal::CreatePartyLobby( const idMatchParameters& parms_ )
 	GetPartyLobby().StartHosting( parms_ );
 	
 	connectType = CONNECT_NONE;
-	connectTime = Sys_Milliseconds();
+	connectTime = sys->Milliseconds();
 	
 	// Wait for it to complete
 	SetState( STATE_CREATE_AND_MOVE_TO_PARTY_LOBBY );
@@ -280,7 +280,7 @@ void idSessionLocal::CreateMatch( const idMatchParameters& p )
 	GetGameLobby().StartHosting( p );
 	
 	connectType = CONNECT_NONE;
-	connectTime = Sys_Milliseconds();
+	connectTime = sys->Milliseconds();
 	
 	// Wait for it to complete
 	SetState( STATE_CREATE_AND_MOVE_TO_GAME_LOBBY );
@@ -303,7 +303,7 @@ void idSessionLocal::CreateGameStateLobby( const idMatchParameters& p )
 	GetGameStateLobby().StartHosting( p );
 	
 	connectType = CONNECT_NONE;
-	connectTime = Sys_Milliseconds();
+	connectTime = sys->Milliseconds();
 	
 	waitingOnGameStateMembersToLeaveTime	= 0;		// Make sure to reset
 	waitingOnGameStateMembersToJoinTime		= 0;
@@ -338,7 +338,7 @@ void idSessionLocal::FindOrCreateMatch( const idMatchParameters& p )
 	GetGameLobby().StartFinding( p );
 	
 	connectType				= CONNECT_FIND_OR_CREATE;
-	connectTime				= Sys_Milliseconds();
+	connectTime				= sys->Milliseconds();
 	gameLobbyWasCoalesced	= false;
 	numFullSnapsReceived	= 0;
 	
@@ -368,7 +368,7 @@ void idSessionLocal::StartLoading()
 			if( GetActingGameStateLobby().peers[p].IsConnected() )
 			{
 				GetActingGameStateLobby().QueueReliableMessage( p, idLobby::RELIABLE_START_LOADING );
-				GetActingGameStateLobby().peers[p].startResourceLoadTime = Sys_Milliseconds();
+				GetActingGameStateLobby().peers[p].startResourceLoadTime = sys->Milliseconds();
 			}
 		}
 	}
@@ -849,7 +849,7 @@ bool idSessionLocal::DetectDisconnectFromService( bool cancelAndShowMsg )
 	// If we are taking too long, cancel the connection
 	if( DETECT_SERVICE_DISCONNECT_TIMEOUT_IN_SECONDS > 0 )
 	{
-		if( Sys_Milliseconds() - connectTime > 1000 * DETECT_SERVICE_DISCONNECT_TIMEOUT_IN_SECONDS )
+		if( sys->Milliseconds() - connectTime > 1000 * DETECT_SERVICE_DISCONNECT_TIMEOUT_IN_SECONDS )
 		{
 			NET_VERBOSE_PRINT( "NET: idSessionLocal::DetectDisconnectFromService timed out\n" );
 			if( cancelAndShowMsg )
@@ -978,7 +978,7 @@ bool idSessionLocal::HandleConnectAndMoveToLobby( idLobby& lobby )
 			
 			const int timeoutMs = session->GetTitleStorageInt( "net_connectTimeoutInSeconds", net_connectTimeoutInSeconds.GetInteger() ) * 1000;
 			
-			if( timeoutMs != 0 && Sys_Milliseconds() - lobby.helloStartTime > timeoutMs )
+			if( timeoutMs != 0 && sys->Milliseconds() - lobby.helloStartTime > timeoutMs )
 			{
 				// Took too long, move to next result, or create a game instead
 				HandleConnectionFailed( lobby, false );
@@ -1044,7 +1044,7 @@ bool idSessionLocal::HandleConnectAndMoveToLobby( idLobby& lobby )
 			{
 				const int timeoutMs = session->GetTitleStorageInt( "net_connectTimeoutInSeconds", net_connectTimeoutInSeconds.GetInteger() ) * 1000;
 				
-				if( timeoutMs != 0 && Sys_Milliseconds() - lobby.helloStartTime > timeoutMs )
+				if( timeoutMs != 0 && sys->Milliseconds() - lobby.helloStartTime > timeoutMs )
 				{
 					GetGameLobby().waitForPartyOk = false;		// Just connect to this game lobby if we haven't heard from the party host for the entire timeout duration
 				}
@@ -1067,7 +1067,7 @@ bool idSessionLocal::HandleConnectAndMoveToLobby( idLobby& lobby )
 			SetState( STATE_GAME_LOBBY_PEER );
 			break;
 		case idLobby::TYPE_GAME_STATE:
-			waitingOnGameStateMembersToJoinTime = Sys_Milliseconds();
+			waitingOnGameStateMembersToJoinTime = sys->Milliseconds();
 			// As a host of the game lobby, it's our duty to notify our members to also join this game state lobby
 			GetGameLobby().SendMembersToLobby( GetGameStateLobby(), false );
 			SetState( STATE_GAME_STATE_LOBBY_PEER );
@@ -1156,7 +1156,7 @@ bool idSessionLocal::State_Create_And_Move_To_Game_State_Lobby()
 		// as soon as we detect all users have connected.
 		if( GetGameLobby().IsHost() )
 		{
-			waitingOnGameStateMembersToJoinTime = Sys_Milliseconds();
+			waitingOnGameStateMembersToJoinTime = sys->Milliseconds();
 		}
 		
 		return true;
@@ -1284,7 +1284,7 @@ bool idSessionLocal::State_Loading()
 				everyoneLoaded = false;
 				
 				// if client is taking a LONG time to load up - give them the boot: they're just holding up the lunch line. Useful for loose assets playtesting.
-				int time = Sys_Milliseconds();
+				int time = sys->Milliseconds();
 				int maxLoadTime = net_maxLoadResourcesTimeInSeconds.GetInteger();
 				if( maxLoadTime > 0 && peer.startResourceLoadTime + SEC2MS( maxLoadTime ) < time )
 				{
@@ -1432,7 +1432,7 @@ bool idSessionLocal::State_Game_State_Lobby_Host()
 	
 		const int MAX_LEAVE_WAIT_TIME_IN_SECONDS = 5;
 		
-		const bool forceDisconnectMembers = ( Sys_Milliseconds() - waitingOnGameStateMembersToLeaveTime ) > MAX_LEAVE_WAIT_TIME_IN_SECONDS * 1000;
+		const bool forceDisconnectMembers = ( sys->Milliseconds() - waitingOnGameStateMembersToLeaveTime ) > MAX_LEAVE_WAIT_TIME_IN_SECONDS * 1000;
 		
 		// Check to see if all peers have finally left
 		if( GetGameStateLobby().GetNumConnectedPeers() == 0 || forceDisconnectMembers )
@@ -1555,7 +1555,7 @@ bool idSessionLocal::State_Game_State_Lobby_Peer()
 		// Give all of our game members 10 seconds to join, otherwise start without them
 		const int MAX_JOIN_WAIT_TIME_IN_SECONDS = 10;
 		
-		const bool forceStart = ( Sys_Milliseconds() - waitingOnGameStateMembersToJoinTime ) > MAX_JOIN_WAIT_TIME_IN_SECONDS * 1000;
+		const bool forceStart = ( sys->Milliseconds() - waitingOnGameStateMembersToJoinTime ) > MAX_JOIN_WAIT_TIME_IN_SECONDS * 1000;
 		
 		if( foundMembers == GetGameLobby().GetNumLobbyUsers() || forceStart )
 		{
@@ -1833,7 +1833,7 @@ void idSessionLocal::EndMatchInternal( bool premature/*=false*/ )
 		if( GetGameStateLobby().IsHost() )
 		{
 			// As a game state host, keep the lobby around, so we can make sure we know when everyone leaves (which means they got the reliable msg to EndMatch)
-			waitingOnGameStateMembersToLeaveTime = Sys_Milliseconds();
+			waitingOnGameStateMembersToLeaveTime = sys->Milliseconds();
 		}
 		else if( GetGameStateLobby().IsPeer() )
 		{
@@ -1959,7 +1959,7 @@ void idSessionLocal::Pump()
 	
 	static int lastPumpTime = -1;
 	
-	const int time					= Sys_Milliseconds();
+	const int time					= sys->Milliseconds();
 	const int elapsedPumpSeconds	= ( time - lastPumpTime ) / 1000;
 	
 	if( lastPumpTime != -1 && elapsedPumpSeconds > 2 )
@@ -2042,7 +2042,7 @@ void idSessionLocal::Pump()
 	GetGameLobby().PumpPackets();
 	GetGameStateLobby().PumpPackets();
 	
-	int currentTime = Sys_Milliseconds();
+	int currentTime = sys->Milliseconds();
 	
 	const int SHOW_MIGRATING_INFO_IN_SECONDS = 3;	// Show for at least this long once we start showing it
 	
@@ -2082,7 +2082,7 @@ void idSessionLocal::Pump()
 				GetPartyLobby().GetNumLobbyUsers() <= 1 &&
 				GetGameLobby().GetNumLobbyUsers() == 1 &&
 				MatchTypeIsRanked( GetGameLobby().parms.matchFlags ) &&
-				Sys_Milliseconds() > nextGameCoalesceTime )
+				sys->Milliseconds() > nextGameCoalesceTime )
 		{
 		
 			// If the player doesn't care about the mode or map,
@@ -2505,10 +2505,10 @@ void idSessionLocal::UpdateSignInManager()
 			// User is still valid, just no longer online
 			if( offlineTransitionTimerStart == 0 )
 			{
-				offlineTransitionTimerStart = Sys_Milliseconds();
+				offlineTransitionTimerStart = sys->Milliseconds();
 			}
 			
-			if( ( Sys_Milliseconds() - offlineTransitionTimerStart ) > net_offlineTransitionThreshold.GetInteger() )
+			if( ( sys->Milliseconds() - offlineTransitionTimerStart ) > net_offlineTransitionThreshold.GetInteger() )
 			{
 				MoveToMainMenu();
 				common->Dialog().ClearDialogs();
@@ -2868,7 +2868,7 @@ idSessionLocal::TickSendQueue
 void idSessionLocal::TickSendQueue()
 {
 	assert( !sendQueue.IsEmpty() );
-	int now = Sys_Milliseconds();
+	int now = sys->Milliseconds();
 	idQueuePacket* packet = sendQueue.Peek();
 	while( packet != NULL )
 	{
@@ -2885,7 +2885,7 @@ void idSessionLocal::TickSendQueue()
 			assert( net_forceLatency.GetInteger() == 0 );
 			// compute / update an added traffic due to the queuing
 			// we can't piggyback on upstreamDropRate because of the way it's computed and clamped to zero
-			int time = Sys_Milliseconds();
+			int time = sys->Milliseconds();
 			if( time > upstreamQueueRateTime )
 			{
 				upstreamQueueRate -= upstreamQueueRate * ( float )( time - upstreamQueueRateTime ) / 1000.0f;
@@ -2966,7 +2966,7 @@ idSessionLocal::SendRawPacket
 */
 void idSessionLocal::SendRawPacket( const lobbyAddress_t& to, const void* data, int size, bool dedicated )
 {
-	const int now = Sys_Milliseconds();
+	const int now = sys->Milliseconds();
 	
 	if( net_forceUpstream.GetFloat() != 0 )
 	{
@@ -2975,7 +2975,7 @@ void idSessionLocal::SendRawPacket( const lobbyAddress_t& to, const void* data, 
 		float totalOutgoingRate = ( float )GetActingGameStateLobby().GetTotalOutgoingRate(); // B/s
 		
 		// update the rate at which we have been taking data out by dropping it
-		int time = Sys_Milliseconds();
+		int time = sys->Milliseconds();
 		if( time > upstreamDropRateTime )
 		{
 			upstreamDropRate -= upstreamDropRate * ( float )( time - upstreamDropRateTime ) / 1000.0f;
@@ -3074,7 +3074,7 @@ bool idSessionLocal::ReadRawPacket( lobbyAddress_t& from, void* data, int& size,
 		TickSendQueue();
 	}
 	
-	const int now = Sys_Milliseconds();
+	const int now = sys->Milliseconds();
 	
 	// Make sure we give both ports equal time
 	static bool currentDedicated = false;
@@ -3377,9 +3377,9 @@ void idSessionLocal::ComputeNextGameCoalesceTime()
 	
 	if( coalesceTimeInSeconds != 0 )
 	{
-		static idRandom2 random( Sys_Milliseconds() );
+		static idRandom2 random( sys->Milliseconds() );
 		
-		nextGameCoalesceTime = Sys_Milliseconds() + ( coalesceTimeInSeconds + random.RandomInt( randomCoalesceTimeInSeconds ) ) * 1000;
+		nextGameCoalesceTime = sys->Milliseconds() + ( coalesceTimeInSeconds + random.RandomInt( randomCoalesceTimeInSeconds ) ) * 1000;
 	}
 	else
 	{
@@ -3720,7 +3720,7 @@ void idSessionLocal::SendVoiceAudio()
 		return;
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	const int VOICE_THROTTLE_TIME_IN_MS	= session->GetTitleStorageInt( "VOICE_THROTTLE_TIME_IN_MS", 33 ) ;		// Don't allow faster than 30hz send rate
 	
@@ -4416,7 +4416,7 @@ bool idNetSessionPort::ReadRawPacket( lobbyAddress_t& from, void* data, int& siz
 {
 	bool result = UDP.GetPacket( from.netAddr, data, size, maxSize );
 	
-	static idRandom2 random( Sys_Milliseconds() );
+	static idRandom2 random( sys->Milliseconds() );
 	if( net_forceDrop.GetInteger() != 0 )
 	{
 		forcePacketDropCurr = random.RandomInt( 100 );
@@ -4436,7 +4436,7 @@ idNetSessionPort::SendRawPacket
 */
 void idNetSessionPort::SendRawPacket( const lobbyAddress_t& to, const void* data, int size )
 {
-	static idRandom2 random( Sys_Milliseconds() );
+	static idRandom2 random( sys->Milliseconds() );
 	if( net_forceDrop.GetInteger() != 0 && net_forceDrop.GetInteger() >= random.RandomInt( 100 ) )
 	{
 		return;

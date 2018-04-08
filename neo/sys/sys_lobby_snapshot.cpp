@@ -69,7 +69,7 @@ void idLobby::UpdateSnaps()
 	SCOPED_PROFILE_EVENT( "UpdateSnaps" );
 	
 #if 0
-	uint64 startTimeMicroSec = Sys_Microseconds();
+	uint64 startTimeMicroSec = sys->Microseconds();
 #endif
 	
 	haveSubmittedSnaps = false;
@@ -102,7 +102,7 @@ void idLobby::UpdateSnaps()
 	}
 	
 #if 0
-	uint64 endTimeMicroSec = Sys_Microseconds();
+	uint64 endTimeMicroSec = sys->Microseconds();
 	
 	if( endTimeMicroSec - startTimeMicroSec > 200 )  	// .2 ms
 	{
@@ -206,7 +206,7 @@ bool idLobby::SubmitPendingSnap( int p )
 		return false;
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	int timeFromLastSub = time - peer.lastSnapJobTime;
 	
@@ -238,7 +238,7 @@ void idLobby::SendCompletedPendingSnap( int p )
 
 	assert( lobbyType == GetActingGameStateLobbyType() );
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	peer_t& peer = peers[p];
 	
@@ -393,7 +393,7 @@ void idLobby::CheckPeerThrottle( int p )
 		return;
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	if( !AllPeersHaveBaseState() )
 	{
@@ -581,7 +581,7 @@ void idLobby::SendSnapshotToPeer( idSnapShot& ss, int p )
 		return;
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	const int throttleMode = session->GetTitleStorageInt( "net_peer_throttle_mode", net_peer_throttle_mode.GetInteger() );
 	
@@ -679,7 +679,7 @@ void idLobby::ThrottleSnapsForXSeconds( int p, int seconds, bool recoverPing )
 	
 	idLib::Printf( "Throttling peer %i for %i seconds...\n", p, seconds );
 	
-	peers[p].throttleSnapsForXSeconds	= Sys_Milliseconds() + seconds * 1000;
+	peers[p].throttleSnapsForXSeconds	= sys->Milliseconds() + seconds * 1000;
 	peers[p].recoverPing				= recoverPing ? peers[p].lastPingRtt : 0;
 }
 
@@ -736,7 +736,7 @@ bool idLobby::EnsureAllPeersHaveBaseState()
 
 	assert( lobbyType == GetActingGameStateLobbyType() );
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	
 	for( int i = 0; i < peers.Num(); ++i )

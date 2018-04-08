@@ -29,6 +29,14 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
+#include "EditField.h"
+
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "KeyInput.h"
+#endif // GAME_DLL
+//Beato End
+
 static autoComplete_t	globalAutoComplete;
 
 /*
@@ -571,7 +579,7 @@ void idEditField::Paste()
 	char*	cbd;
 	int		pasteLen, i;
 	
-	cbd = Sys_GetClipboardData();
+	cbd = sys->GetClipboardData();
 	
 	if( !cbd )
 	{
@@ -631,9 +639,7 @@ void idEditField::Draw( int x, int y, int width, bool showCursor )
 	
 	// guarantee that cursor will be visible
 	if( len <= drawLen )
-	{
 		prestep = 0;
-	}
 	else
 	{
 		if( scroll + drawLen > len )

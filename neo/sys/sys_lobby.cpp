@@ -361,7 +361,7 @@ void idLobby::HandlePacket( lobbyAddress_t& remoteAddress, idBitMsg fragMsg, idP
 			idLib::Printf( "NET: Received in-band packet from peer %s with no active connection.\n", remoteAddress.ToString() );
 			return;
 		}
-		type = peers[ peerNum ].packetProc->ProcessIncoming( Sys_Milliseconds(), peers[peerNum].sessionID, fragMsg, msg, userData, peerNum );
+		type = peers[ peerNum ].packetProc->ProcessIncoming( sys->Milliseconds(), peers[peerNum].sessionID, fragMsg, msg, userData, peerNum );
 	}
 	else
 	{
@@ -388,7 +388,7 @@ void idLobby::HandlePacket( lobbyAddress_t& remoteAddress, idBitMsg fragMsg, idP
 	if( peerNum >= 0 )
 	{
 		// Update their heart beat (only if we've received a valid packet (we've checked type == idPacketProcessor::RETURN_TYPE_NONE))
-		peers[peerNum].lastHeartBeat = Sys_Milliseconds();
+		peers[peerNum].lastHeartBeat = sys->Milliseconds();
 	}
 	
 	// Handle server query requests.  We do this before the STATE_IDLE check.  This is so we respond.
@@ -436,7 +436,7 @@ void idLobby::HandlePacket( lobbyAddress_t& remoteAddress, idBitMsg fragMsg, idP
 			
 			if( migrationInfo.state == MIGRATE_NONE )
 			{
-				if( IsPeer() && host >= 0 && host < peers.Num() && Sys_Milliseconds() - peers[host].lastHeartBeat > 8 * 1000 )
+				if( IsPeer() && host >= 0 && host < peers.Num() && sys->Milliseconds() - peers[host].lastHeartBeat > 8 * 1000 )
 				{
 					// Force migration early if we get an invite, and it has been some time since we've heard from the host
 					PickNewHost();
@@ -524,7 +524,7 @@ void idLobby::HandlePacket( lobbyAddress_t& remoteAddress, idBitMsg fragMsg, idP
 			int seqNum = msg.ReadLong();
 			// TODO: We should read the random data and verify the MD5 checksum
 			
-			int time = Sys_Milliseconds();
+			int time = sys->Milliseconds();
 			bool inOrder = ( seqNum == 0 || peers[peerNum].bandwidthSequenceNum + 1 == seqNum );
 			int timeSinceLast = 0;
 			
@@ -801,7 +801,7 @@ void idLobby::State_Create_Lobby_Backend()
 		// If we are taking too long, cancel the connection
 		if( DETECT_SERVICE_DISCONNECT_TIMEOUT_IN_SECONDS > 0 )
 		{
-			if( Sys_Milliseconds() - migrationInfo.migrationStartTime > 1000 * DETECT_SERVICE_DISCONNECT_TIMEOUT_IN_SECONDS )
+			if( sys->Milliseconds() - migrationInfo.migrationStartTime > 1000 * DETECT_SERVICE_DISCONNECT_TIMEOUT_IN_SECONDS )
 			{
 				SetState( STATE_FAILED );
 				return;
@@ -902,7 +902,7 @@ void idLobby::State_Obtaining_Address()
 	host = AddPeer( hostAddress, GenerateSessionID() );
 	
 	// Record start time of connection attempt to the host
-	helloStartTime		= Sys_Milliseconds();
+	helloStartTime		= sys->Milliseconds();
 	lastConnectRequest	= helloStartTime;
 	connectionAttempts	= 0;
 	
@@ -959,7 +959,7 @@ void idLobby::State_Connect_Hello_Wait()
 		return;
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	const int timeoutMs = session->GetTitleStorageInt( "net_connectTimeoutInSeconds", net_connectTimeoutInSeconds.GetInteger() ) * 1000;
 	
@@ -2015,7 +2015,7 @@ int idLobby::HandleInitialPeerConnection( idBitMsg& msg, const lobbyAddress_t& p
 	SetPeerConnectionState( peerNum, CONNECTION_ESTABLISHED );
 	
 	// Update their heart beat to current
-	newPeer.lastHeartBeat = Sys_Milliseconds();
+	newPeer.lastHeartBeat = sys->Milliseconds();
 	
 	byte buffer[ idPacketProcessor::MAX_PACKET_SIZE ];
 	idBitMsg outmsg( buffer, sizeof( buffer ) );
@@ -2314,7 +2314,7 @@ uint32 idLobby::GetPartyTokenAsHost()
 		// I don't know if this is mathematically sound, but it seems reasonable.
 		// Don't do this at app startup (i.e. in the constructor) or it will be a lot less random.
 		// DG: use int instead of long for 64bit compatibility
-		unsigned int seed = Sys_Milliseconds(); // time app has been running
+		unsigned int seed = sys->Milliseconds(); // time app has been running
 		// DG end
 		idLocalUser* masterUser = session->GetSignInManager().GetMasterLocalUser();
 		if( masterUser != NULL )
@@ -2360,7 +2360,7 @@ idLobby::GenerateSessionID
 */
 idPacketProcessor::sessionId_t idLobby::GenerateSessionID() const
 {
-	idPacketProcessor::sessionId_t sessionID = EncodeSessionID( Sys_Milliseconds() );
+	idPacketProcessor::sessionId_t sessionID = EncodeSessionID( sys->Milliseconds() );
 	
 	// Make sure we can use it
 	while( !SessionIDCanBeUsedForInBand( sessionID ) )
@@ -2516,7 +2516,7 @@ void idLobby::HandleHelloAck( int p, idBitMsg& msg )
 	AddUsersFromMsg( msg, p );
 	
 	// Make sure the host has a current heartbeat
-	peer.lastHeartBeat = Sys_Milliseconds();
+	peer.lastHeartBeat = sys->Milliseconds();
 	
 	lobbyBackend->PostConnectFromMsg( msg );
 	
@@ -3236,7 +3236,7 @@ void idLobby::DrawDebugNetworkHUD2() const
 	
 	renderSystem->DrawFilled( idVec4( 1.0f, 1.0f, 1.0f, 0.7f ), X_OFFSET - 10.0f, curY - 10.0f, 550, ( peers.Num() + 5 ) * Y_SPACING + 20.0f );
 	
-	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), va( "State: %s. Local time: %d", stateName, Sys_Milliseconds() ), colorGreen, false );
+	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), va( "State: %s. Local time: %d", stateName, sys->Milliseconds() ), colorGreen, false );
 	curY += Y_SPACING;
 	
 	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "Peer           | Sent kB/s | Recv kB/s | L | R | Resources", colorGreen, false );
@@ -3340,7 +3340,7 @@ void idLobby::DrawDebugNetworkHUD_ServerSnapshotMetrics( bool draw )
 	}
 	
 	static int lastTime = 0;
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	for( int p = 0; p < peers.Num(); p++ )
 	{
@@ -3488,7 +3488,7 @@ idLobby::CheckHeartBeats
 void idLobby::CheckHeartBeats()
 {
 	// Disconnect peers that haven't responded within net_peerTimeoutInSeconds
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	int timeoutInMs = session->GetTitleStorageInt( "net_peerTimeoutInSeconds", net_peerTimeoutInSeconds.GetInteger() ) * 1000;
 	
@@ -3576,7 +3576,7 @@ bool idLobby::IsLosingConnectionToHost() const
 		return true;
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	int timeoutInMs = session->GetTitleStorageInt( "net_peerTimeoutInSeconds", net_peerTimeoutInSeconds.GetInteger() ) * 1000;
 	
@@ -3702,7 +3702,7 @@ void idLobby::PingPeers()
 		return;
 	}
 	
-	const int now = Sys_Milliseconds();
+	const int now = sys->Milliseconds();
 	
 	pktPing_t packet;
 	memset( &packet, 0, sizeof( packet ) ); // We're gonna memset like it's 1999.
@@ -3763,7 +3763,7 @@ void idLobby::BeginBandwidthTest()
 		return;
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	bandwidthChallengeStartTime = time;
 	bandwidthChallengeEndTime = 0;
 	bandwidthChallengeFinished = false;
@@ -3816,7 +3816,7 @@ void idLobby::ServerUpdateBandwidthTest()
 		return;
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	if( bandwidthChallengeFinished )
 	{
@@ -3955,7 +3955,7 @@ void idLobby::ClientUpdateBandwidthTest()
 		return;
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	if( bandwidthChallengeEndTime > time )
 	{
 		// Test is still going on
@@ -4004,7 +4004,7 @@ void idLobby::HandleBandwidhTestValue( int p, idBitMsg& msg )
 		return;
 	}
 	
-	idLib::Printf( "Received RELIABLE_BANDWIDTH_CHECK %d\n", Sys_Milliseconds() );
+	idLib::Printf( "Received RELIABLE_BANDWIDTH_CHECK %d\n", sys->Milliseconds() );
 	
 	if( bandwidthChallengeStartTime < 0 || bandwidthChallengeFinished )
 	{
@@ -4093,7 +4093,7 @@ void idLobby::SendPingValues()
 		return;
 	}
 	
-	const int now = Sys_Milliseconds();
+	const int now = sys->Milliseconds();
 	
 	if( nextSendPingValuesTime > now )
 	{
@@ -4164,7 +4164,7 @@ void idLobby::PumpPings()
 	{
 		ClientUpdateBandwidthTest();
 		
-		if( lastPingValuesRecvTime + PING_INTERVAL_MS + 1000 < Sys_Milliseconds() && migrationInfo.state == MIGRATE_NONE )
+		if( lastPingValuesRecvTime + PING_INTERVAL_MS + 1000 < sys->Milliseconds() && migrationInfo.state == MIGRATE_NONE )
 		{
 			for( int userIndex = 0; userIndex < GetNumLobbyUsers(); ++userIndex )
 			{
@@ -4220,7 +4220,7 @@ idLobby::HandlePingReply
 */
 void idLobby::HandlePingReply( int p, const pktPing_t& ping )
 {
-	const int now = Sys_Milliseconds();
+	const int now = sys->Milliseconds();
 	
 	const int rtt = now - ping.timestamp;
 	peers[p].lastPingRtt = rtt;
@@ -4251,7 +4251,7 @@ void idLobby::HandlePingValues( idBitMsg& msg )
 	
 	assert( IsPeer() );
 	
-	lastPingValuesRecvTime = Sys_Milliseconds();
+	lastPingValuesRecvTime = sys->Milliseconds();
 	
 	for( int userIndex = 0; userIndex < GetNumLobbyUsers(); ++userIndex )
 	{
@@ -4302,7 +4302,7 @@ bool idLobby::SendAnotherFragment( int p )
 		return false;		// We need to throttle the sends so we don't saturate the connection
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	if( time - peer.lastFragmentSendTime < 2 )
 	{
@@ -4385,7 +4385,7 @@ void idLobby::ProcessOutgoingMsg( int p, const void* data, int size, bool isOOB,
 		idLib::Error( "FATAL: Attempt to process a packet while fragments still need to be sent.\n" ); // We can't handle this case
 	}
 	
-	int currentTime = Sys_Milliseconds();
+	int currentTime = sys->Milliseconds();
 	
 	// if ( currentTime - peer.lastProcTime < 30 ) {
 	//	 idLib::Printf("ProcessOutgoingMsg called within %dms %s\n", (currentTime - peer.lastProcTime), GetLobbyName() );
@@ -4430,7 +4430,7 @@ void idLobby::ResendReliables( int p )
 		return;
 	}
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	const int DEFAULT_MIN_RESEND		= 20;		// Quicker resend while not in game to speed up resource transmission acks
 	const int DEFAULT_MIN_RESEND_INGAME	= 100;
@@ -4473,7 +4473,7 @@ idLobby::PumpPackets
 */
 void idLobby::PumpPackets()
 {
-	int newTime = Sys_Milliseconds();
+	int newTime = sys->Milliseconds();
 	
 	for( int p = 0; p < peers.Num(); p++ )
 	{
@@ -4798,7 +4798,7 @@ int idLobby::GetPeerTimeSinceLastPacket( int peerIndex ) const
 	{
 		return 0;
 	}
-	return Sys_Milliseconds() - peers[peerIndex].lastHeartBeat;
+	return sys->Milliseconds() - peers[peerIndex].lastHeartBeat;
 }
 
 /*

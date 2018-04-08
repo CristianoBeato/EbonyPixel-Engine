@@ -33,6 +33,14 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Common_local.h"
 
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "DemoFile.h"
+#	include "Console.h"
+#endif // GAME_DLL
+//Beato End
+
+
 /*
 ================
 FindUnusedFileName
@@ -161,7 +169,7 @@ void idCommonLocal::StopPlayingRenderDemo()
 	}
 	
 	// Record the stop time before doing anything that could be time consuming
-	int timeDemoStopTime = Sys_Milliseconds();
+	int timeDemoStopTime = sys->Milliseconds();
 	
 	EndAVICapture();
 	
@@ -281,7 +289,7 @@ void idCommonLocal::StartPlayingRenderDemo( idStr demoName )
 	
 	numDemoFrames = 1;
 	
-	timeDemoStartTime = Sys_Milliseconds();
+	timeDemoStartTime = sys->Milliseconds();
 }
 
 /*

@@ -1,25 +1,31 @@
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-project(RBDoom3BFG)
+project(Beato-Tech1)
 
-option(USE_MFC_TOOLS
-		"Compile the built-in MFC based tools" OFF)
+option(USE_TOOLS
+		"enable  built-in toos and compilers" ON)
+if(USE_TOOLS)
+	option(USE_MFC_TOOLS
+			"Compile the built-in MFC based tools" OFF)
+endif(USE_TOOLS)
 		
 option(MONOLITH
 		"Embed game logic into main executable" ON)
 
 option(USE_PRECOMPILED_HEADERS
 		"Use precompiled headers during build" ON)
-		
-option(SDL2
-		"Use SDL2 instead of SDL1.2" ON)
-		
-option(OPENAL
-		"Use OpenAL soft instead of XAudio2" OFF)
+	
+if(WIN32)
+	option(XAUDIO2 "Use Xaudio2 soft instead of SDL audio or SDL (win)" ON)
+endif(WIN32)
 
-option(FFMPEG
-		"Use FMPEG to render Bink videos" ON)
+option(OPENAL "Use OpenAL soft instead of SDL audio or XAUDIO (win)" OFF)
+if(OPENAL)
+	option(USE_SYSTEM_OPENAL "Use the system OpenAL instead of the bundled one" OFF)
+	set(XAUDIO2 FALSE)
+endif(OPENAL)
+
 
 option(ONATIVE
 		"Optimize for the host CPU" OFF)
@@ -44,7 +50,7 @@ option(USE_SYSTEM_LIBGLEW
 
 set(CPU_TYPE "" CACHE STRING "When set, passes this string as CPU-ID which will be embedded into the binary.")
 
-set(CPU_OPTIMIZATION "-mmmx -msse -msse2" CACHE STRING "Which CPU specific optimitations should be used beside the compiler's default?")
+set(CPU_OPTIMIZATION "-mmmx -msse -msse2 -avx" CACHE STRING "Which CPU specific optimitations should be used beside the compiler's default?")
 
 option(USE_INTRINSICS "Compile using intrinsics (e.g mmx, sse, msse2)" ON)
 
@@ -86,11 +92,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		# require msvcr70.dll or newer for _aligned_malloc etc
 		# I think it is from Visual C++ .NET 2002, so it should be available on any remotely modern system.
 		add_definitions(-D__MSVCRT_VERSION__=0x0700)
-		
-		find_package(DirectX REQUIRED)
 		include_directories(libs/mingw-hacks)
-		include_directories(${DirectX_INCLUDE_DIR})
-		add_definitions(-DUSE_XINPUT)
 	endif()	
 	
 	#if(NOT ANDROID)
@@ -125,7 +127,14 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	set(CMAKE_CXX_FLAGS_MINSIZEREL ${CMAKE_C_FLAGS_MINSIZEREL})
 
 elseif(MSVC)
-	
+	add_compile_options(/W4)
+	add_compile_options(/wd4244) # possible loss of data
+	add_compile_options(/wd4245) # signed/unsigned mismatch
+	add_compile_options(/wd4267) # possible loss of data
+	add_compile_options(/wd4714) # 'function' marked as __forceinline not inlined
+	add_compile_options(/wd4595) # 'function' non-member operator new or delete functions may not be declared inline
+	add_compile_options(/wd4458) # declaration of 'z' hides class member
+	add_compile_options(/wd4467) # usage of ATL attributes is deprecated
 	# Multiprocessor support for compiling
 	# /MP
 	
@@ -193,7 +202,6 @@ elseif(MSVC)
 					-D_CRT_NONSTDC_NO_DEPRECATE
 					-D_CRT_SECURE_NO_WARNINGS
                                         -D_MBCS
-                                       #-DUSE_OPENAL
 					-DUSE_EXCEPTIONS)
         ## Check for Version ##
         if( WINRT OR WINDOWS10 ) # Windows RT
@@ -221,16 +229,30 @@ endif()
 #if(STANDALONE)
 #	add_definitions(-DSTANDALONE)
 #endif()
+if( NOT MONOLITH)
+	add_definitions(-D__DOOM_DLL__ -DGAME_DLL)
+endif()
 
+ ##libs
+find_package(OpenGL REQUIRED)
+include_directories(${OPENGL_INCLUDE_DIRS})
+ 
+#set(SDL2_BUILDING_LIBRARY ON)
+find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIR})
+
+find_package(SDL2_TTF REQUIRED)
+include_directories(${SDL2_TTF_INCLUDE_DIRS})
+ 
 if (USE_SYSTEM_ZLIB)
   find_package(ZLIB REQUIRED)
 endif(USE_SYSTEM_ZLIB)
 
 if (ZLIB_FOUND)
-    include_directories(${ZLIB_INCLUDE_DIRS})
+    set(ZLIB_INCLUDE ${ZLIB_INCLUDE_DIRS})
     set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
 else (ZLIB_FOUND)
-    include_directories("libs/zlib")
+   set(ZLIB_INCLUDE "libs/zlib")
     set(ZLIB_LIBRARY "" )
 endif (ZLIB_FOUND)
 
@@ -239,24 +261,23 @@ find_package(PNG REQUIRED)
 endif (USE_SYSTEM_LIBPNG)
 
 if (PNG_FOUND)
-    include_directories(${PNG_INCLUDE_DIRS})
+	set(PNG_INCLUDE ${PNG_INCLUDE_DIRS})
     set(PNG_LIBRARY ${PNG_LIBRARIES})
 else (PNG_FOUND)
-    include_directories("libs/png")
+	set(PNG_INCLUDE "libs/png")
     set(PNG_LIBRARY "" )
 endif (PNG_FOUND)
-
 
 if(USE_SYSTEM_LIBJPEG)
 find_package(JPEG REQUIRED)
 endif(USE_SYSTEM_LIBJPEG)
 
 if (JPEG_FOUND)
-    include_directories(${JPEG_INCLUDE_DIRS})
+    set(JPEG_INCLUDE ${JPEG_INCLUDE_DIRS})
     set(JPEG_LIBRARY ${JPEG_LIBRARIES})
     add_definitions(-DUSE_NEWER_JPEG)
 else (JPEG_FOUND)
-    include_directories("libs/jpeg-6")
+	set(JPEG_INCLUDE "libs/jpeg-6")
     set(JPEG_LIBRARY "" )
 endif (JPEG_FOUND)
 
@@ -265,45 +286,59 @@ find_package(GLEW)
 endif(USE_SYSTEM_LIBGLEW)
 
 if (GLEW_FOUND)
-    include_directories(${GLEW_INCLUDE_DIRS})
+	set(GLEW_INCLUDE ${GLEW_INCLUDE_DIRS})
     set(GLEW_LIBRARY ${GLEW_LIBRARIES})
 else (GLEW_FOUND)
-    include_directories("libs/glew/include")
+	set(GLEW_INCLUDE "libs/glew/include")
     set(GLEW_LIBRARY "" )
     add_definitions(-DGLEW_STATIC)
 endif (GLEW_FOUND)
 
+if(OPENAL)
+	if (USE_SYSTEM_OPENAL)
+		find_package(OPENAL REQUIRED)
+	endif(USE_SYSTEM_OPENAL)
+
+	if (OPENAL_FOUND)
+		set(AUDIO_LIB_INCLUDE_DIRS ${OPENAL_INCLUDE_DIRS})
+		set(AUDIO_LIB_LIBRARY ${OPENAL_LIBRARIES})
+	else (OPENAL_FOUND)
+		set(AUDIO_LIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/libs/openal-soft/include)
+		if(CMAKE_CL_64)
+			set(AUDIO_LIB_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/libs/openal-soft/lib/win64/OpenAL32.lib)
+		else()
+			set(AUDIO_LIB_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/libs/openal-soft/lib/win32/OpenAL32.lib)
+		endif()
+	endif (OPENAL_FOUND)
+elseif(XAUDIO2)
+	find_package(DirectX REQUIRED)
+	set(AUDIO_LIB_INCLUDE_DIRS ${DirectX_INCLUDE_DIR})
+	set(AUDIO_LIB_LIBRARY xaudio2.lib dsound.lib)
+else()
+	set(AUDIO_LIB_INCLUDE_DIRS "")
+	set(AUDIO_LIB_LIBRARY "")
+endif(OPENAL)
+	
+#SET THE BASE SOURCE DIR
+include_directories(
+	${CMAKE_SOURCE_DIR}
+	${CMAKE_SOURCE_DIR}/idlib
+	${ZLIB_INCLUDE}
+	${GLEW_INCLUDE}
+	${JPEG_INCLUDE}
+	${PNG_INCLUDE}
+	)
+#the idlib and framework libs
+add_subdirectory(framework)	
 add_subdirectory(idlib)
+add_subdirectory(game)
+add_subdirectory(sound)
+add_subdirectory(renderer)
 
-file(GLOB AAS_INCLUDES aas/*.h)
-file(GLOB AAS_SOURCES aas/*.cpp)
-
-file(GLOB_RECURSE CM_INCLUDES cm/*.h)
-file(GLOB_RECURSE CM_SOURCES cm/*.cpp)
-
-file(GLOB FRAMEWORK_INCLUDES framework/*.h)
-file(GLOB FRAMEWORK_SOURCES framework/*.cpp)
-
-file(GLOB FRAMEWORK_ASYNC_INCLUDES framework/async/*.h)
-file(GLOB FRAMEWORK_ASYNC_SOURCES framework/async/*.cpp)
-
-file(GLOB RENDERER_INCLUDES renderer/*.h)
-file(GLOB RENDERER_SOURCES renderer/*.cpp)
-file(GLOB RENDERER_COLOR_INCLUDES renderer/Color/*.h)
-file(GLOB RENDERER_COLOR_SOURCES renderer/Color/*.cpp)
-file(GLOB RENDERER_DXT_INCLUDES renderer/DXT/*.h)
-file(GLOB RENDERER_DXT_SOURCES renderer/DXT/*.cpp)
-file(GLOB RENDERER_JOBS_INCLUDES renderer/jobs/*.h)
-file(GLOB RENDERER_JOBS_SOURCES renderer/jobs/*.cpp)
-file(GLOB RENDERER_JOBS_DYNAMICSHADOWVOLUME_INCLUDES renderer/jobs/dynamicshadowvolume/*.h)
-file(GLOB RENDERER_JOBS_DYNAMICSHADOWVOLUME_SOURCES renderer/jobs/dynamicshadowvolume/*.cpp)
-file(GLOB RENDERER_JOBS_PRELIGHTSHADOWVOLUME_INCLUDES renderer/jobs/prelightshadowvolume/*.h)
-file(GLOB RENDERER_JOBS_PRELIGHTSHADOWVOLUME_SOURCES renderer/jobs/prelightshadowvolume/*.cpp)
-file(GLOB RENDERER_JOBS_STATICSHADOWVOLUME_INCLUDES renderer/jobs/staticshadowvolume/*.h)
-file(GLOB RENDERER_JOBS_STATICSHADOWVOLUME_SOURCES renderer/jobs/staticshadowvolume/*.cpp)
-file(GLOB RENDERER_OPENGL_INCLUDES renderer/OpenGL/*.h)
-file(GLOB RENDERER_OPENGL_SOURCES renderer/OpenGL/*.cpp)
-file(GLOB RENDERER_SMAA_INCLUDES renderer/SMAA/*.h)
+if(USE_TOOLS)
+	add_definitions(-D_ID_ALLOW_TOOLS_)
+	add_subdirectory(tools)
+endif(USE_TOOLS)
 
 file(GLOB IRRXML_INCLUDES libs/irrxml/src/*.h)
 file(GLOB IRRXML_SOURCES libs/irrxml/src/*.cpp)
@@ -392,7 +427,6 @@ else (NOT ZLIB_FOUND)
   set(ZLIB_SOURCES "")
 endif (NOT ZLIB_FOUND)
 
-
 file(GLOB MINIZIP_INCLUDES libs/zlib/minizip/*.h)
 file(GLOB MINIZIP_SOURCES libs/zlib/minizip/*.c libs/zlib/minizip/*.cpp)
 	
@@ -444,52 +478,7 @@ set(FREETYPE_SOURCES
 	libs/freetype/src/cid/type1cid.c
 	libs/freetype/src/type42/type42.c
 	libs/freetype/src/winfonts/winfnt.c)
-	
-	
-set(SOUND_INCLUDES
-	sound/snd_local.h
-	sound/sound.h
-	sound/SoundVoice.h
-	sound/WaveFile.h)
-	
-set(SOUND_SOURCES
-	#sound/snd_cache.cpp
-	#sound/snd_decoder.cpp
-	#sound/snd_efxfile.cpp
-	sound/snd_emitter.cpp
-	sound/snd_shader.cpp
-	sound/snd_system.cpp
-	sound/snd_world.cpp
-	sound/SoundVoice.cpp
-	sound/WaveFile.cpp
-	)
-	
-set(XAUDIO2_INCLUDES
-	sound/XAudio2/XA2_SoundHardware.h
-	sound/XAudio2/XA2_SoundSample.h
-	sound/XAudio2/XA2_SoundVoice.h)
-	
-set(XAUDIO2_SOURCES
-	sound/XAudio2/XA2_SoundHardware.cpp
-	sound/XAudio2/XA2_SoundSample.cpp
-	sound/XAudio2/XA2_SoundVoice.cpp)
-	
-set(OPENAL_INCLUDES
-	sound/OpenAL/AL_SoundHardware.h
-	sound/OpenAL/AL_SoundSample.h
-	sound/OpenAL/AL_SoundVoice.h)
-	
-set(OPENAL_SOURCES
-	sound/OpenAL/AL_SoundHardware.cpp
-	sound/OpenAL/AL_SoundSample.cpp
-	sound/OpenAL/AL_SoundVoice.cpp)
-
-set(STUBAUDIO_INCLUDES
-	sound/stub/SoundStub.h)
-
-set(STUBAUDIO_SOURCES
-	sound/stub/SoundSample.cpp)
-	
+		
 set(OGGVORBIS_INCLUDES
 	libs/oggvorbis/ogg/ogg.h
 	libs/oggvorbis/ogg/os_types.h)
@@ -520,261 +509,90 @@ set(OGGVORBIS_SOURCES
 	libs/oggvorbis/vorbissrc/bitrate.c
 	libs/oggvorbis/vorbissrc/vorbisfile.c)
 
+### === GwenLIB === ###
+include_directories(libs/gwen/include)
+file(GLOB GWEN_INCLUDES libs/gwen/include/gwen/*.h)
+file(GLOB GWEN_SOURCES libs/gwen/src/*.cpp)
+source_group("libs\\gwen" FILES ${GWEN_INCLUDES})
+source_group("libs\\gwen" FILES ${GWEN_SOURCES})
+
+file(GLOB CONTROLS_INCLUDES libs/gwen/include/gwen/Controls/*.h)
+file(GLOB CONTROLS_SOURCES libs/gwen/src/Controls/*.cpp)
+source_group("libs\\gwen\\Controls" FILES ${CONTROLS_INCLUDES})
+source_group("libs\\gwen\\Controls" FILES ${CONTROLS_SOURCES})
+
+file(GLOB CONTROLS_DLG_INCLUDES libs/gwen/include/gwen/Controls/Dialogs/*.h)
+file(GLOB CONTROLS_DLG_SOURCES libs/gwen/src/Controls/Dialogs/*.cpp)
+source_group("libs\\gwen\\Controls\\Dialogs" FILES ${CONTROLS_DLG_INCLUDES})
+source_group("libs\\gwen\\Controls\\Dialogs" FILES ${CONTROLS_DLG_SOURCES})
+
+file(GLOB CONTROLS_LYT_INCLUDES libs/gwen/include/gwen/Controls/Layout/*.h)
+file(GLOB CONTROLS_LYT_SOURCES libs/gwen/src/Controls/Layout/*.cpp)
+source_group("libs\\gwen\\Controls\\Layout" FILES ${CONTROLS_LYT_INCLUDES})
+source_group("libs\\gwen\\Controls\\Layout" FILES ${CONTROLS_LYT_SOURCES})
+
+file(GLOB CONTROLS_PPT_INCLUDES libs/gwen/include/gwen/Controls/Property/*.h)
+file(GLOB CONTROLS_PPT_SOURCES libs/gwen/src/Controls/Property/*.cpp)
+source_group("libs\\gwen\\Controls\\Property" FILES ${CONTROLS_PPT_INCLUDES})
+source_group("libs\\gwen\\Controls\\Property" FILES ${CONTROLS_PPT_SOURCES})
+
+file(GLOB INPUT_INCLUDES libs/gwen/include/gwen/Input/*.h)
+file(GLOB INPUT_SOURCES libs/gwen/src/Input/*.cpp)
+source_group("libs\\gwen\\Input" FILES ${INPUT_INCLUDES})
+source_group("libs\\gwen\\Input" FILES ${INPUT_SOURCES})
+
+file(GLOB PLATF_INCLUDES libs/gwen/include/gwen/Platforms/*.h)
+file(GLOB PLATF_SOURCES libs/gwen/src/Platforms/*.cpp)
+source_group("libs\\gwen\\Platforms" FILES ${PLATF_INCLUDES})
+source_group("libs\\gwen\\Platforms" FILES ${PLATF_SOURCES})
+
+file(GLOB RENDERERS_INCLUDES libs/gwen/include/gwen/Renderers/*.h)
+file(GLOB RENDERERS_SOURCES libs/gwen/src/Renderers/*.cpp)
+source_group("libs\\gwen\\Renderers" FILES ${RENDERERS_INCLUDES})
+source_group("libs\\gwen\\Renderers" FILES ${RENDERERS_SOURCES})
+
+file(GLOB SKINS_INCLUDES libs/gwen/include/gwen/Skins/*.h)
+file(GLOB SKINS_SOURCES libs/gwen/src/Skins/*.cpp)
+source_group("libs\\gwen\\Skins" FILES ${SKINS_INCLUDES})
+source_group("libs\\gwen\\Skins" FILES ${SKINS_SOURCES})
+
+set(GWEN_LIB_INCLUDES
+	${GWEN_INCLUDES}
+	${CONTROLS_INCLUDES}
+	${CONTROLS_DLG_INCLUDES}
+	${CONTROLS_LYT_INCLUDES}
+	${CONTROLS_PPT_INCLUDES}
+	${INPUT_INCLUDES}
+	${PLATF_INCLUDES}
+	${RENDERERS_INCLUDES}
+	${SKINS_INCLUDES}
+)
+
+set( GWEN_LIB_SOURCES
+	${GWEN_SOURCES}
+	${CONTROLS_SOURCES}
+	${CONTROLS_DLG_SOURCES}
+	${CONTROLS_LYT_SOURCES}
+	${INPUT_SOURCES}
+	${PLATF_SOURCES}
+	${RENDERERS_SOURCES}
+	${SKINS_SOURCES}
+)
+
+	
 file(GLOB RAPIDJSON_INCLUDES libs/rapidjson/include/rapidjson/*.h)
 	
 file(GLOB SYS_INCLUDES sys/*.h)
 file(GLOB SYS_SOURCES sys/*.cpp)
 
-file(GLOB UI_INCLUDES ui/*.h)
-file(GLOB UI_SOURCES ui/*.cpp)
-
-file(GLOB SWF_INCLUDES swf/*.h)
-file(GLOB SWF_SOURCES swf/*.cpp)
-
-
-set(GAMED3XP_INCLUDES
-	d3xp/Achievements.h
-	d3xp/Actor.h
-	d3xp/AF.h
-	d3xp/AFEntity.h
-	d3xp/AimAssist.h
-	d3xp/BrittleFracture.h
-	d3xp/Camera.h
-	#d3xp/EndLevel.h
-	d3xp/Entity.h
-	d3xp/Fx.h
-	d3xp/Game.h
-	d3xp/GameEdit.h
-	d3xp/Game_local.h
-	d3xp/Grabber.h
-	d3xp/IK.h
-	d3xp/Item.h
-	d3xp/Leaderboards.h
-	d3xp/Light.h
-	d3xp/Misc.h
-	d3xp/Moveable.h
-	d3xp/Mover.h
-	d3xp/MultiplayerGame.h
-	d3xp/Player.h
-	d3xp/PlayerIcon.h
-	d3xp/PlayerView.h
-	d3xp/PredictedValue.h
-	d3xp/Projectile.h
-	d3xp/Pvs.h
-	d3xp/SecurityCamera.h
-	d3xp/SmokeParticles.h
-	d3xp/Sound.h
-	d3xp/Target.h
-	d3xp/Trigger.h
-	d3xp/Weapon.h
-	d3xp/WorldSpawn.h)
-	
-set(GAMED3XP_SOURCES
-	d3xp/Achievements.cpp
-	d3xp/Actor.cpp
-	d3xp/AF.cpp
-	d3xp/AFEntity.cpp
-	d3xp/AimAssist.cpp
-	d3xp/BrittleFracture.cpp
-	d3xp/Camera.cpp
-	#d3xp/EndLevel.cpp
-	d3xp/Entity.cpp
-	d3xp/Fx.cpp
-	d3xp/GameEdit.cpp
-	d3xp/Game_local.cpp
-	d3xp/Game_network.cpp
-	d3xp/Grabber.cpp
-	d3xp/IK.cpp
-	d3xp/Item.cpp
-	d3xp/Leaderboards.cpp
-	d3xp/Light.cpp
-	d3xp/Misc.cpp
-	d3xp/Moveable.cpp
-	d3xp/Mover.cpp
-	d3xp/MultiplayerGame.cpp
-	d3xp/Player.cpp
-	d3xp/PlayerIcon.cpp
-	d3xp/PlayerView.cpp
-	d3xp/precompiled.cpp
-	d3xp/Projectile.cpp
-	d3xp/Pvs.cpp
-	d3xp/SecurityCamera.cpp
-	d3xp/SmokeParticles.cpp
-	d3xp/Sound.cpp
-	d3xp/Target.cpp
-	d3xp/Trigger.cpp
-	d3xp/Weapon.cpp
-	d3xp/WorldSpawn.cpp)
-
-file(GLOB GAMED3XP_AI_INCLUDES d3xp/ai/*.h)
-file(GLOB GAMED3XP_AI_SOURCES d3xp/ai/*.cpp)
-
-file(GLOB GAMED3XP_ANIM_INCLUDES d3xp/anim/*.h)
-file(GLOB GAMED3XP_ANIM_SOURCES d3xp/anim/*.cpp)
-
-file(GLOB GAMED3XP_GAMESYS_INCLUDES d3xp/gamesys/*.h)
-set(GAMED3XP_GAMESYS_SOURCES
-	#d3xp/gamesys/Callbacks.cpp
-	d3xp/gamesys/Class.cpp
-	#d3xp/gamesys/DebugGraph.cpp
-	d3xp/gamesys/Event.cpp
-	d3xp/gamesys/SaveGame.cpp
-	d3xp/gamesys/SysCmds.cpp
-	d3xp/gamesys/SysCvar.cpp
-	#d3xp/gamesys/TypeInfo.cpp
-	)
-
-file(GLOB GAMED3XP_MENUS_INCLUDES d3xp/menus/*.h)
-file(GLOB GAMED3XP_MENUS_SOURCES d3xp/menus/*.cpp)
-	
-file(GLOB GAMED3XP_PHYSICS_INCLUDES d3xp/physics/*.h)
-file(GLOB GAMED3XP_PHYSICS_SOURCES d3xp/physics/*.cpp)
-
-file(GLOB GAMED3XP_SCRIPT_INCLUDES d3xp/script/*.h)
-file(GLOB GAMED3XP_SCRIPT_SOURCES d3xp/script/*.cpp)
-
-
-file(GLOB COMPILER_INCLUDES tools/compilers/*.h)
-
-file(GLOB COMPILER_AAS_INCLUDES tools/compilers/aas/*.h)
-file(GLOB COMPILER_AAS_SOURCES tools/compilers/aas/*.cpp)
-
-file(GLOB COMPILER_DMAP_INCLUDES tools/compilers/dmap/*.h)
-file(GLOB COMPILER_DMAP_SOURCES tools/compilers/dmap/*.cpp)
-
-file(GLOB COMPILER_RENDERBUMP_INCLUDES tools/compilers/renderbump/*.h)
-file(GLOB COMPILER_RENDERBUMP_SOURCES tools/compilers/renderbump/*.cpp)
-
-file(GLOB COMPILER_ROQVQ_INCLUDES tools/compilers/roqvq/*.h)
-file(GLOB COMPILER_ROQVQ_SOURCES tools/compilers/roqvq/*.cpp)
-
-set(TOOLS_INCLUDES tools/edit_public.h)
-
-file(GLOB TOOLS_COMAFX_INCLUDES tools/comafx/*.h)
-file(GLOB TOOLS_COMAFX_SOURCES tools/comafx/*.cpp)
-
-set(TOOLS_COMMON_INCLUDES
-	tools/common/ColorButton.h
-	tools/common/DialogHelpers.h
-	tools/common/MaskEdit.h
-	tools/common/OpenFileDialog.h
-	tools/common/PropertyGrid.h
-	tools/common/RegistryOptions.h
-	#tools/common/RenderBumpFlatDialog.h
-	tools/common/RollupPanel.h
-	tools/common/SpinButton.h)
-
-set(TOOLS_COMMON_SOURCES
-	tools/common/AlphaPopup.cpp
-	tools/common/ColorButton.cpp
-	tools/common/MaskEdit.cpp
-	tools/common/OpenFileDialog.cpp
-	tools/common/PropertyGrid.cpp
-	tools/common/RegistryOptions.cpp
-	#tools/common/RenderBumpFlatDialog.cpp
-	tools/common/RollupPanel.cpp
-	tools/common/SpinButton.cpp)
-
-file(GLOB TOOLS_COMMON_PROPTREE_INCLUDES tools/common/PropTree/*.h)
-file(GLOB TOOLS_COMMON_PROPTREE_SOURCES tools/common/PropTree/*.cpp)
-
-file(GLOB EDITOR_AF_INCLUDES tools/af/*.h)
-file(GLOB EDITOR_AF_SOURCES tools/af/*.cpp)
-
-set(EDITOR_DECL_INCLUDES
-	tools/decl/DialogDeclBrowser.h
-	tools/decl/DialogDeclEditor.h
-	tools/decl/DialogDeclNew.h)
-	
-set(EDITOR_DECL_SOURCES
-	tools/decl/DialogDeclBrowser.cpp
-	tools/decl/DialogDeclEditor.cpp
-	tools/decl/DialogDeclNew.cpp)
-	
-file(GLOB EDITOR_DEBUGGER_INCLUDES tools/debugger/*.h)
-file(GLOB EDITOR_DEBUGGER_SOURCES tools/debugger/*.cpp)
-
-file(GLOB EDITOR_GUIED_INCLUDES tools/guied/*.h)
-set(EDITOR_GUIED_SOURCES
-	tools/guied/GEApp.cpp
-	tools/guied/GECheckInDlg.cpp
-	tools/guied/GEDeleteModifier.cpp
-	tools/guied/GEHideModifier.cpp
-	tools/guied/GEInsertModifier.cpp
-	tools/guied/GEItemPropsDlg.cpp
-	tools/guied/GEItemScriptsDlg.cpp
-	tools/guied/GEKeyValueModifier.cpp
-	tools/guied/GEModifier.cpp
-	tools/guied/GEModifierGroup.cpp
-	tools/guied/GEModifierStack.cpp
-	tools/guied/GEMoveModifier.cpp
-	tools/guied/GENavigator.cpp
-	tools/guied/GEOptions.cpp
-	tools/guied/GEOptionsDlg.cpp
-	tools/guied/GEProperties.cpp
-	tools/guied/GEPropertyPage.cpp
-	tools/guied/GESelectionMgr.cpp
-	tools/guied/GESizeModifier.cpp
-	tools/guied/GEStateModifier.cpp
-	tools/guied/GEStatusBar.cpp
-	tools/guied/GETransformer.cpp
-	tools/guied/GEViewer.cpp
-	tools/guied/GEWindowWrapper.cpp
-	#tools/guied/GEWindowWrapper_stub.cpp
-	tools/guied/GEWorkspace.cpp
-	tools/guied/GEWorkspaceFile.cpp
-	tools/guied/GEZOrderModifier.cpp
-	tools/guied/guied.cpp)
-
-file(GLOB EDITOR_MATERIALEDITOR_INCLUDES tools/materialeditor/*.h)
-file(GLOB EDITOR_MATERIALEDITOR_SOURCES tools/materialeditor/*.cpp)
-
-file(GLOB EDITOR_PARTICLE_INCLUDES tools/particle/*.h)
-file(GLOB EDITOR_PARTICLE_SOURCES tools/particle/*.cpp)
-
-file(GLOB EDITOR_PDA_INCLUDES tools/pda/*.h)
-file(GLOB EDITOR_PDA_SOURCES tools/pda/*.cpp)
-
-file(GLOB EDITOR_RADIANT_INCLUDES tools/radiant/*.h)
-file(GLOB EDITOR_RADIANT_SOURCES tools/radiant/*.cpp)
-
-file(GLOB EDITOR_SCRIPT_INCLUDES tools/script/*.h)
-file(GLOB EDITOR_SCRIPT_SOURCES tools/script/*.cpp)
-
-file(GLOB EDITOR_SOUND_INCLUDES tools/sound/*.h)
-file(GLOB EDITOR_SOUND_SOURCES tools/sound/*.cpp)
-
-file(GLOB DOOMCLASSIC_INCLUDES ../doomclassic/doom/*.h)
-file(GLOB DOOMCLASSIC_SOURCES ../doomclassic/doom/*.cpp)
-
-set(DOOMCLASSIC_STUBAUDIO_SOURCES ../doomclassic/doom/i_sound_stub.cpp)
-set(DOOMCLASSIC_OPENAL_SOURCES ../doomclassic/doom/i_sound_openal.cpp)
-set(DOOMCLASSIC_XAUDIO2_SOURCES ../doomclassic/doom/i_sound_win32.cpp)
-
-list(REMOVE_ITEM DOOMCLASSIC_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../doomclassic/doom/i_sound_stub.cpp)
-list(REMOVE_ITEM DOOMCLASSIC_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../doomclassic/doom/i_sound_openal.cpp)
-list(REMOVE_ITEM DOOMCLASSIC_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../doomclassic/doom/i_sound_win32.cpp)
-
-file(GLOB TIMIDITY_INCLUDES libs/timidity/*.h)
-file(GLOB TIMIDITY_SOURCES libs/timidity/*.cpp)
-
 file(GLOB_RECURSE WIN32_INCLUDES sys/win32/*.h)
 #file(GLOB_RECURSE WIN32_SOURCES sys/win32/*.cpp)
 
 set(WIN32_SOURCES
-	sys/win32/win_glimp.cpp
-	sys/win32/win_input.cpp
-	sys/win32/win_main.cpp
 	sys/win32/win_shared.cpp
-	sys/win32/win_snd.cpp
-	sys/win32/win_syscon.cpp
-	sys/win32/win_taskkeyhook.cpp
-	sys/win32/win_wndproc.cpp)
+	sys/win32/win_syscon.cpp)
 	
-if(MSVC)
-	list(APPEND WIN32_SOURCES sys/win32/win_cpu.cpp)
-endif()
-
+	
 set(WIN32_RESOURCES
 	# sys/win32/rc/res/BEVEL.BMP
 	# sys/win32/rc/res/BITMAP2.BMP
@@ -839,8 +657,6 @@ set(WIN32_RESOURCES
 	# sys/win32/rc/res/spliter.cur
 	)
 
-
-
 #if(USE_MFC_TOOLS)
 	list(APPEND WIN32_RESOURCES sys/win32/rc/doom.rc)
 #else()
@@ -853,48 +669,6 @@ file(GLOB POSIX_SOURCES sys/posix/*.cpp)
 
 file(GLOB COMMON_INCLUDES sys/common/*.h)
 file(GLOB COMMON_SOURCES sys/common/*.cpp)
-
-file(GLOB SDL_INCLUDES sys/sdl/*.h)
-file(GLOB SDL_SOURCES sys/sdl/*.cpp)
-
-
-source_group("aas" FILES ${AAS_INCLUDES})
-source_group("aas" FILES ${AAS_SOURCES})
-
-source_group("cm" FILES ${CM_INCLUDES})
-source_group("cm" FILES ${CM_SOURCES})
-
-source_group("framework" FILES ${FRAMEWORK_INCLUDES})
-source_group("framework" FILES ${FRAMEWORK_SOURCES})
-
-source_group("framework\\async" FILES ${FRAMEWORK_ASYNC_INCLUDES})
-source_group("framework\\async" FILES ${FRAMEWORK_ASYNC_SOURCES})
-
-source_group("renderer" FILES ${RENDERER_INCLUDES})
-source_group("renderer" FILES ${RENDERER_SOURCES})
-
-source_group("renderer\\Color" FILES ${RENDERER_COLOR_INCLUDES})
-source_group("renderer\\Color" FILES ${RENDERER_COLOR_SOURCES})
-
-source_group("renderer\\DXT" FILES ${RENDERER_DXT_INCLUDES})
-source_group("renderer\\DXT" FILES ${RENDERER_DXT_SOURCES})
-
-source_group("renderer\\jobs" FILES ${RENDERER_JOBS_INCLUDES})
-source_group("renderer\\jobs" FILES ${RENDERER_JOBS_SOURCES})
-
-source_group("renderer\\jobs\\dynamicshadowvolume" FILES ${RENDERER_JOBS_DYNAMICSHADOWVOLUME_INCLUDES})
-source_group("renderer\\jobs\\dynamicshadowvolume" FILES ${RENDERER_JOBS_DYNAMICSHADOWVOLUME_SOURCES})
-
-source_group("renderer\\jobs\\prelightshadowvolume" FILES ${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_INCLUDES})
-source_group("renderer\\jobs\\prelightshadowvolume" FILES ${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_SOURCES})
-
-source_group("renderer\\jobs\\staticshadowvolume" FILES ${RENDERER_JOBS_STATICSHADOWVOLUME_INCLUDES})
-source_group("renderer\\jobs\\staticshadowvolume" FILES ${RENDERER_JOBS_STATICSHADOWVOLUME_SOURCES})
-
-source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_INCLUDES})
-source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_SOURCES})
-
-source_group("renderer\\SMAA" FILES ${RENDERER_SMAA_INCLUDES})
 
 source_group("libs\\irrxml" FILES ${IRRXML_INCLUDES})
 source_group("libs\\irrxml" FILES ${IRRXML_SOURCES})
@@ -915,67 +689,10 @@ source_group("libs\\glew" FILES ${GLEW_INCLUDES})
 source_group("libs\\glew" FILES ${GLEW_SOURCES})
 
 source_group("libs\\rapidjson" FILES ${RAPIDJSON_INCLUDES})
-
 source_group("libs\\freetype" FILES ${FREETYPE_SOURCES})
-
-source_group("sound" FILES ${SOUND_INCLUDES})
-source_group("sound" FILES ${SOUND_SOURCES})
-
-source_group("sound\\XAudio2" FILES ${XAUDIO2_INCLUDES})
-source_group("sound\\XAudio2" FILES ${XAUDIO2_SOURCES})
-
-source_group("sound\\OpenAL" FILES ${OPENAL_INCLUDES})
-source_group("sound\\OpenAL" FILES ${OPENAL_SOURCES})
-
-source_group("sound\\stub" FILES ${STUBAUDIO_INCLUDES})
-source_group("sound\\stub" FILES ${STUBAUDIO_SOURCES})
-
-source_group("libs\\oggvorbis" FILES ${OGGVORBIS_INCLUDES})
-source_group("libs\\oggvorbis" FILES ${OGGVORBIS_SOURCES})
-
-source_group("ui" FILES ${UI_INCLUDES})
-source_group("ui" FILES ${UI_SOURCES})
-
-source_group("swf" FILES ${SWF_INCLUDES})
-source_group("swf" FILES ${SWF_SOURCES})
 
 source_group("sys" FILES ${SYS_INCLUDES})
 source_group("sys" FILES ${SYS_SOURCES})
-
-source_group("doomclassic" FILES ${DOOMCLASSIC_INCLUDES})
-source_group("doomclassic" FILES ${DOOMCLASSIC_SOURCES})
-
-source_group("doomclassic" FILES ${DOOMCLASSIC_STUBAUDIO_SOURCES})
-source_group("doomclassic" FILES ${DOOMCLASSIC_OPENAL_SOURCES})
-source_group("doomclassic" FILES ${DOOMCLASSIC_XAUDIO2_SOURCES})
-
-source_group("libs\\timidity" FILES ${TIMIDITY_INCLUDES})
-source_group("libs\\timidity" FILES ${TIMIDITY_SOURCES})
-
-
-source_group("game-d3xp" FILES ${GAMED3XP_INCLUDES})
-source_group("game-d3xp" FILES ${GAMED3XP_SOURCES})
-
-source_group("game-d3xp\\ai" FILES ${GAMED3XP_AI_INCLUDES})
-source_group("game-d3xp\\ai" FILES ${GAMED3XP_AI_SOURCES})
-
-source_group("game-d3xp\\anim" FILES ${GAMED3XP_ANIM_INCLUDES})
-source_group("game-d3xp\\anim" FILES ${GAMED3XP_ANIM_SOURCES})
-
-source_group("game-d3xp\\gamesys" FILES ${GAMED3XP_GAMESYS_INCLUDES})
-source_group("game-d3xp\\gamesys" FILES ${GAMED3XP_GAMESYS_SOURCES})
-
-source_group("game-d3xp\\menus" FILES ${GAMED3XP_MENUS_INCLUDES})
-source_group("game-d3xp\\menus" FILES ${GAMED3XP_MENUS_SOURCES})
-
-source_group("game-d3xp\\physics" FILES ${GAMED3XP_PHYSICS_INCLUDES})
-source_group("game-d3xp\\physics" FILES ${GAMED3XP_PHYSICS_SOURCES})
-
-source_group("game-d3xp\\script" FILES ${GAMED3XP_SCRIPT_INCLUDES})
-source_group("game-d3xp\\script" FILES ${GAMED3XP_SCRIPT_SOURCES})
-
-
-
 
 source_group("sys\\win32" FILES ${WIN32_INCLUDES})
 source_group("sys\\win32" FILES ${WIN32_SOURCES})
@@ -987,80 +704,8 @@ source_group("sys\\posix" FILES ${POSIX_SOURCES})
 source_group("sys\\common" FILES ${COMMON_INCLUDES})
 source_group("sys\\common" FILES ${COMMON_SOURCES})
 
-source_group("sys\\sdl" FILES ${SDL_INCLUDES})
-source_group("sys\\sdl" FILES ${SDL_SOURCES})
-
-
-source_group("tools\\compilers" FILES ${COMPILER_INCLUDES})
-
-source_group("tools\\compilers\\aas" FILES ${COMPILER_AAS_INCLUDES})
-source_group("tools\\compilers\\aas" FILES ${COMPILER_AAS_SOURCES})
-
-source_group("tools\\compilers\\dmap" FILES ${COMPILER_DMAP_INCLUDES})
-source_group("tools\\compilers\\dmap" FILES ${COMPILER_DMAP_SOURCES})
-
-source_group("tools\\compilers\\renderbump" FILES ${COMPILER_RENDERBUMP_INCLUDES})
-source_group("tools\\compilers\\renderbump" FILES ${COMPILER_RENDERBUMP_SOURCES})
-
-source_group("tools\\compilers\\roqvq" FILES ${COMPILER_ROQVQ_INCLUDES})
-source_group("tools\\compilers\\roqvq" FILES ${COMPILER_ROQVQ_SOURCES})
-
-source_group("tools" FILES ${TOOLS_INCLUDES})
-
-source_group("tools\\comafx" FILES ${TOOLS_COMAFX_INCLUDES})
-source_group("tools\\comafx" FILES ${TOOLS_COMAFX_SOURCES})
-
-source_group("tools\\common" FILES ${TOOLS_COMMON_INCLUDES})
-source_group("tools\\common" FILES ${TOOLS_COMMON_SOURCES})
-
-source_group("tools\\common\\proptree" FILES ${TOOLS_COMMON_PROPTREE_INCLUDES})
-source_group("tools\\common\\proptree" FILES ${TOOLS_COMMON_PROPTREE_SOURCES})
-
-source_group("tools\\af" FILES ${EDITOR_AF_INCLUDES})
-source_group("tools\\af" FILES ${EDITOR_AF_SOURCES})
-
-source_group("tools\\debugger" FILES ${EDITOR_DEBUGGER_INCLUDES})
-source_group("tools\\debugger" FILES ${EDITOR_DEBUGGER_SOURCES})
-
-source_group("tools\\decl" FILES ${EDITOR_DECL_INCLUDES})
-source_group("tools\\decl" FILES ${EDITOR_DECL_SOURCES})
-
-source_group("tools\\guied" FILES ${EDITOR_GUIED_INCLUDES})
-source_group("tools\\guied" FILES ${EDITOR_GUIED_SOURCES})
-
-source_group("tools\\materialeditor" FILES ${EDITOR_MATERIALEDITOR_INCLUDES})
-source_group("tools\\materialeditor" FILES ${EDITOR_MATERIALEDITOR_SOURCES})
-
-source_group("tools\\particle" FILES ${EDITOR_PARTICLE_INCLUDES})
-source_group("tools\\particle" FILES ${EDITOR_PARTICLE_SOURCES})
-
-source_group("tools\\pda" FILES ${EDITOR_PDA_INCLUDES})
-source_group("tools\\pda" FILES ${EDITOR_PDA_SOURCES})
-
-source_group("tools\\radiant" FILES ${EDITOR_RADIANT_INCLUDES})
-source_group("tools\\radiant" FILES ${EDITOR_RADIANT_SOURCES})
-
-source_group("tools\\script" FILES ${EDITOR_SCRIPT_INCLUDES})
-source_group("tools\\script" FILES ${EDITOR_SCRIPT_SOURCES})
-
-source_group("tools\\sound" FILES ${EDITOR_SOUND_INCLUDES})
-source_group("tools\\sound" FILES ${EDITOR_SOUND_SOURCES})
-
-
 set(RBDOOM3_INCLUDES
-			${AAS_INCLUDES}
-			${CM_INCLUDES}
-			${FRAMEWORK_INCLUDES}
-			${FRAMEWORK_ASYNC_INCLUDES}
-			${RENDERER_INCLUDES}
-			${RENDERER_COLOR_INCLUDES}
-			${RENDERER_DXT_INCLUDES}
-			${RENDERER_JOBS_INCLUDES}
-			${RENDERER_JOBS_DYNAMICSHADOWVOLUME_INCLUDES}
-			${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_INCLUDES}
-			${RENDERER_JOBS_STATICSHADOWVOLUME_INCLUDES}
-			${RENDERER_OPENGL_INCLUDES}
-			${RENDERER_SMAA_INCLUDES}
+			${GWEN_INCLUDES}
 			${IRRXML_INCLUDES}
 			${JPEG_INCLUDES}
 			${PNG_INCLUDES}
@@ -1071,32 +716,11 @@ set(RBDOOM3_INCLUDES
 			#${FREETYPE_SOURCES}
 			${SOUND_INCLUDES}
 			#${OGGVORBIS_INCLUDES}
-			${UI_INCLUDES}
-			${SWF_INCLUDES}
 			${COMMON_INCLUDES}
-			${DOOMCLASSIC_INCLUDES}
-			${TIMIDITY_INCLUDES}
-			
-			${COMPILER_INCLUDES}
-			${COMPILER_AAS_INCLUDES} ${COMPILER_AAS_SOURCES}
-			${COMPILER_DMAP_INCLUDES} ${COMPILER_DMAP_SOURCES}
-			#${COMPILER_RENDERBUMP_INCLUDES} ${COMPILER_RENDERBUMP_SOURCES}
-			#${COMPILER_ROQVQ_INCLUDES} ${COMPILER_ROQVQ_SOURCES}
 			)
 			
 set(RBDOOM3_SOURCES
-			${AAS_SOURCES}
-			${CM_SOURCES}
-			${FRAMEWORK_SOURCES}
-			${FRAMEWORK_ASYNC_SOURCES} 
-			${RENDERER_SOURCES}
-			${RENDERER_COLOR_SOURCES}
-			${RENDERER_DXT_SOURCES}
-			${RENDERER_JOBS_SOURCES}
-			${RENDERER_JOBS_DYNAMICSHADOWVOLUME_SOURCES}
-			${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_SOURCES}
-			${RENDERER_JOBS_STATICSHADOWVOLUME_SOURCES}
-			${RENDERER_OPENGL_SOURCES}
+			${GWEN_LIB_SOURCES}
 			${IRRXML_SOURCES}
 			${JPEG_SOURCES}
 			${PNG_SOURCES}
@@ -1106,181 +730,41 @@ set(RBDOOM3_SOURCES
 			#${FREETYPE_SOURCES}
 			${SOUND_SOURCES}
 			#${OGGVORBIS_INCLUDES} ${OGGVORBIS_SOURCES}
-			${UI_SOURCES}
-			${SWF_SOURCES}
 			${COMMON_SOURCES}
-			${DOOMCLASSIC_SOURCES}
-			${TIMIDITY_SOURCES}
-			
-			${COMPILER_AAS_SOURCES}
-			${COMPILER_DMAP_SOURCES}
-			#${COMPILER_RENDERBUMP_SOURCES}
-			#${COMPILER_ROQVQ_SOURCES}
 			)
-
-add_definitions(-DUSE_DOOMCLASSIC)
 
 add_definitions(-D__DOOM__
 				#-DBUILD_FREETYPE
 				#-DFT2_BUILD_LIBRARY
 				)
-				
-if(MONOLITH)
-	list(APPEND RBDOOM3_INCLUDES
-		${GAMED3XP_INCLUDES}
-		${GAMED3XP_AI_INCLUDES} 
-		${GAMED3XP_ANIM_INCLUDES} 
-		${GAMED3XP_GAMESYS_INCLUDES} 
-		${GAMED3XP_MENUS_INCLUDES}
-		${GAMED3XP_PHYSICS_INCLUDES}
-		${GAMED3XP_SCRIPT_INCLUDES})
-		
-	list(APPEND RBDOOM3_SOURCES
-		${GAMED3XP_SOURCES}
-		${GAMED3XP_AI_SOURCES}
-		${GAMED3XP_ANIM_SOURCES}
-		${GAMED3XP_GAMESYS_SOURCES}
-		${GAMED3XP_MENUS_SOURCES}
-		${GAMED3XP_PHYSICS_SOURCES}
-		${GAMED3XP_SCRIPT_SOURCES})
-else()
-	add_definitions(-D__DOOM_DLL__)
+
+if(USE_PRECOMPILED_HEADERS) 
+	set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
+	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${GWEN_LIB_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${GLEW_SOURCES})
+	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)	
+	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/precompiled.cpp)	
 endif()
 
-include_directories(
-			.
+set( RBDOOM3_LIBRARIES
 			idlib
-			#libs/curl/include
-			#libs/openal/include
-			#libs/freetype/include
-            )
-			
-#link_directories(
-#			${CMAKE_CURRENT_SOURCE_DIR}/libs/curl/lib
-#			${CMAKE_CURRENT_SOURCE_DIR}/libs/openal/lib)
+			renderer
+			framework
+			game
+			sound
+			tools	
+			${OPENGL_LIBRARY}
+			${SDL2_LIBRARY}
+			${SDL2_TTF_LIBRARIES}
+			${AUDIO_LIB_LIBRARY}
+            ${ZLIB_LIBRARY}
+            ${PNG_LIBRARY}
+            ${JPEG_LIBRARY}
+            ${GLEW_LIBRARY}
+			${CMAKE_DL_LIBS}
+	)
+
 
 if(MSVC)
-
-	# if(MSVC_VERSION EQUAL 1700)
-		# set(DirectX_LIBRARIES
-			# dinput8
-			# dsound
-			# dxguid
-			# #dxerr
-			# Xinput
-			# xaudio2.lib
-			# )
-		
-		# if(NOT OPENAL)
-			# list(APPEND DirectX_LIBRARIES xaudio2.lib)
-		# endif()
-		
-	# else()
-	
-	if(WINDOWS10)
-		set(DirectX_LIBRARIES
-			dinput8
-			dsound
-			dxguid
-			#dxerr
-			Xinput
-			xaudio2.lib
-			)
-	else()
-		find_package(DirectX REQUIRED)
-		include_directories(${DirectX_INCLUDE_DIR})
-	endif()
-	
-	if(OPENAL)
-		add_definitions(-DUSE_OPENAL)
-	
-		include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openal-soft/include)
-		
-		if(CMAKE_CL_64)
-			link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openal-soft/lib/win64)
-		else()
-			link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openal-soft/lib/win32)
-		endif()
-		
-		list(APPEND RBDOOM3_INCLUDES ${OPENAL_INCLUDES})
-		list(APPEND RBDOOM3_SOURCES
-			${OPENAL_SOURCES}
-			${DOOMCLASSIC_OPENAL_SOURCES})
-		
-		set(OpenAL_LIBRARIES
-			OpenAL32)
-			
-		if(CMAKE_CL_64)
-			install(FILES libs/openal-soft/lib/win64/OpenAL64.dll DESTINATION .)
-		else()
-			install(FILES libs/openal-soft/lib/win32/OpenAL32.dll DESTINATION .)
-			install(FILES libs/openal-soft/lib/win32/OpenAL32.pdb DESTINATION .)
-		endif()
-	else()
-		list(APPEND RBDOOM3_INCLUDES ${XAUDIO2_INCLUDES})
-		list(APPEND RBDOOM3_SOURCES
-			${XAUDIO2_SOURCES}
-			${DOOMCLASSIC_XAUDIO2_SOURCES})
-	endif()
-	
-	if(FFMPEG)
-		add_definitions(-DUSE_FFMPEG)
-	
-		if(CMAKE_CL_64)
-			include_directories(libs/ffmpeg-win64/include)
-			include_directories(libs/ffmpeg-win64/include/libswscale)
-			include_directories(libs/ffmpeg-win64/include/libavformat)
-			include_directories(libs/ffmpeg-win64/include/libavdevice)
-			include_directories(libs/ffmpeg-win64/include/libavcodec)
-			
-			link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ffmpeg-win64/lib)
-		else()
-			include_directories(libs/ffmpeg-win32/include)
-			include_directories(libs/ffmpeg-win32/include/libswscale)
-			include_directories(libs/ffmpeg-win32/include/libavformat)
-			include_directories(libs/ffmpeg-win32/include/libavdevice)
-			include_directories(libs/ffmpeg-win32/include/libavcodec)
-			
-			link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ffmpeg-win32/lib)
-		endif()
-		
-		set(FFmpeg_LIBRARIES
-				avcodec
-				avformat
-				avutil
-				swscale)
-		
-	endif()
-	
-	if(USE_MFC_TOOLS)
-		
-		include_directories(libs/atlmfc/include)
-		if(CMAKE_CL_64)
-			link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/atlmfc/lib/amd64)
-		else()
-			link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/atlmfc/lib)
-		endif()
-		
-		add_definitions(-DUSE_MFC_TOOLS)
-		
-		list(APPEND RBDOOM3_SOURCES
-			${TOOLS_INCLUDES}
-			${TOOLS_COMAFX_INCLUDES} ${TOOLS_COMAFX_SOURCES}
-			${TOOLS_COMMON_INCLUDES} ${TOOLS_COMMON_SOURCES}
-			${TOOLS_COMMON_PROPTREE_INCLUDES} ${TOOLS_COMMON_PROPTREE_SOURCES}
-			
-			${EDITOR_AF_INCLUDES} ${EDITOR_AF_SOURCES}
-			${EDITOR_DEBUGGER_INCLUDES} ${EDITOR_DEBUGGER_SOURCES}
-			${EDITOR_DECL_INCLUDES} ${EDITOR_DECL_SOURCES}
-			${EDITOR_GUIED_INCLUDES} ${EDITOR_GUIED_SOURCES}
-			${EDITOR_MATERIALEDITOR_INCLUDES} ${EDITOR_MATERIALEDITOR_SOURCES}
-			${EDITOR_PARTICLE_INCLUDES} ${EDITOR_PARTICLE_SOURCES}
-			${EDITOR_PDA_INCLUDES} ${EDITOR_PDA_SOURCES}
-			${EDITOR_RADIANT_INCLUDES} ${EDITOR_RADIANT_SOURCES}
-			${EDITOR_SCRIPT_INCLUDES} ${EDITOR_SCRIPT_SOURCES}
-			${EDITOR_SOUND_INCLUDES} ${EDITOR_SOUND_SOURCES})
-	endif()
-	
 	list(APPEND RBDOOM3_INCLUDES
 		${SYS_INCLUDES} 
 		${WIN32_INCLUDES})
@@ -1290,31 +774,16 @@ if(MSVC)
 		${WIN32_SOURCES})
 
 	list(REMOVE_DUPLICATES RBDOOM3_SOURCES)
-	
-	if(USE_PRECOMPILED_HEADERS) 
-		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${GLEW_SOURCES})
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/dynamicshadowvolume/DynamicShadowVolume.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/prelightshadowvolume/PreLightShadowVolume.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/staticshadowvolume/StaticShadowVolume.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/ShadowShared.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/RenderLog.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/framework/precompiled.cpp)
-	
-	
+
+	if(USE_PRECOMPILED_HEADERS)
 		set_source_files_properties(
 		${RBDOOM3_PRECOMPILED_SOURCES}
 		PROPERTIES
 		COMPILE_FLAGS "/Yuprecompiled.h"
 		OBJECT_DEPENDS "precompiled.pch"
-
 		)
 		
-		set_source_files_properties(framework/precompiled.cpp
+		set_source_files_properties(sys/precompiled.cpp
 		PROPERTIES
 		COMPILE_FLAGS "/Ycprecompiled.h"
 		OBJECT_OUTPUTS "precompiled.pch"
@@ -1324,33 +793,14 @@ if(MSVC)
 	list(APPEND RBDOOM3_SOURCES ${WIN32_RESOURCES})
 	
 	add_executable(RBDoom3BFG WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
-		
-	#add_custom_command(TARGET RBDoom3BFG
-    #               PRE_BUILD
-	#			   COMMAND nmake ARGS /f Makefile.vc6 CFG=release
-	#			   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl/lib
-    #               COMMENT "Compiling libcURL")
-		
-	add_dependencies(RBDoom3BFG idlib)
+
+	add_dependencies(RBDoom3BFG idlib framework game renderer sound tools)
 	target_link_libraries(RBDoom3BFG
-		idlib
-		${DirectX_LIBRARIES}
-		#libcurl 
-		#openal32 
-		opengl32
-		glu32
 		dbghelp
-		#eaxguid
 		iphlpapi
 		winmm
 		wsock32.lib
-		${OpenAL_LIBRARIES}
-		${FFmpeg_LIBRARIES}
-        ${ZLIB_LIBRARY}
-        ${PNG_LIBRARY}
-        ${JPEG_LIBRARY}
-        ${GLEW_LIBRARY}
-		${CMAKE_DL_LIBS}
+		${RBDOOM3_LIBRARIES}
 		)
 		
 	#CMAKE_BINARY_DIR
@@ -1366,29 +816,8 @@ else()
 
 	list(APPEND RBDOOM3_SOURCES
 		${SYS_INCLUDES} ${SYS_SOURCES})
-	
-	find_package(OpenGL REQUIRED)
-	include_directories(${OPENGL_INCLUDE_DIRS})
 
 	if(UNIX)
-		if(FFMPEG)
-			find_package(FFMPEG REQUIRED)
-			add_definitions(-DUSE_FFMPEG)
-			
-			include_directories(${FFMPEG_INCLUDE_DIR})
-			link_directories(${FFMPEG_LIBRARIES_DIRS})
-		endif()
-
-		if(SDL2)
-			find_package(SDL2 REQUIRED)
-			include_directories(${SDL2_INCLUDE_DIR})
-			set(SDLx_LIBRARY ${SDL2_LIBRARY})
-		else()
-			find_package(SDL REQUIRED)
-			include_directories(${SDL_INCLUDE_DIR})
-			set(SDLx_LIBRARY ${SDL_LIBRARY})
-		endif()
-
 		if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 			list(REMOVE_ITEM POSIX_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/posix/platform_linux.cpp)
 		else()
@@ -1396,49 +825,12 @@ else()
 		endif()
 
 		list(APPEND RBDOOM3_SOURCES
-			${POSIX_INCLUDES} ${POSIX_SOURCES}
-			${SDL_INCLUDES} ${SDL_SOURCES})
-			
-		if(OPENAL)
-			find_package(OpenAL REQUIRED)
-			add_definitions(-DUSE_OPENAL)
-
-			#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openal-soft/include)
-			
-			#if(CMAKE_CL_64)
-			#	link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openal-soft/lib/win64)
-			#else()
-			#	link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openal-soft/lib/win32)
-			#endif()
-			
-			list(APPEND RBDOOM3_INCLUDES ${OPENAL_INCLUDES})
-			list(APPEND RBDOOM3_SOURCES
-				${OPENAL_SOURCES}
-				${DOOMCLASSIC_OPENAL_SOURCES})
-		else()
-			list(APPEND RBDOOM3_INCLUDES ${STUBAUDIO_INCLUDES})
-			list(APPEND RBDOOM3_SOURCES
-				${STUBAUDIO_SOURCES}
-				${DOOMCLASSIC_STUBAUDIO_SOURCES})
-		endif()
-			
+			${POSIX_INCLUDES} ${POSIX_SOURCES})
 	endif()
 
 	list(REMOVE_DUPLICATES RBDOOM3_SOURCES)
 	
 	if(USE_PRECOMPILED_HEADERS) 	
-		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${GLEW_SOURCES})
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/dynamicshadowvolume/DynamicShadowVolume.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/prelightshadowvolume/PreLightShadowVolume.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/staticshadowvolume/StaticShadowVolume.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/ShadowShared.cpp)
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/RenderLog.cpp)
-
 		foreach( src_file ${RBDOOM3_PRECOMPILED_SOURCES} )
 			#message(STATUS "-include precompiled.h for ${src_file}")
 			set_source_files_properties(
@@ -1507,20 +899,10 @@ else()
 			set(RT_LIBRARY rt)
 		endif()
 
-		target_link_libraries(RBDoom3BFG
-			idlib
-			${OPENGL_LIBRARIES}
-			pthread
+		target_link_libraries(RBDoom3BFG		
+			${RBDOOM3_LIBRARIES}
 			${RT_LIBRARY}
-			${SDLx_LIBRARY}
-			${OPENAL_LIBRARY}
-			${FFMPEG_LIBRARIES}
-            ${ZLIB_LIBRARY}
-            ${PNG_LIBRARY}
-            ${JPEG_LIBRARY}
-            ${GLEW_LIBRARY}
-	    ${CMAKE_DL_LIBS}
+			pthread
 			)
 	endif()
-    
 endif()

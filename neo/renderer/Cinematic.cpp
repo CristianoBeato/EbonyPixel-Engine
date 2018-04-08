@@ -28,8 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 
 extern idCVar s_noSound;
@@ -775,7 +775,7 @@ cinData_t idCinematicLocal::ImageForTime( int thisTime )
 	
 	if( thisTime == 0 )
 	{
-		thisTime = Sys_Milliseconds();
+		thisTime = sys->Milliseconds();
 	}
 	
 	if( thisTime < 0 )

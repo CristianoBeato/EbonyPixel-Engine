@@ -27,10 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
+
 #include "precompiled.h"
-#include "../snd_local.h"
-#include "../../../doomclassic/doom/i_sound.h"
+#pragma hdrstop
+#include "sound/snd_local.h"
 
 idCVar s_showLevelMeter( "s_showLevelMeter", "0", CVAR_BOOL | CVAR_ARCHIVE, "Show VU meter" );
 idCVar s_meterTopTime( "s_meterTopTime", "1000", CVAR_INTEGER | CVAR_ARCHIVE, "How long (in milliseconds) peaks are displayed on the VU meter" );
@@ -197,11 +197,6 @@ void idSoundHardware_OpenAL::Init()
 	//idSoundVoice::InitSurround( outputChannels, channelMask );
 	
 	// ---------------------
-	// Initialize the Doom classic sound system.
-	// ---------------------
-	I_InitSoundHardware( voices.Max(), 0 );
-	
-	// ---------------------
 	// Create VU Meter Effect
 	// ---------------------
 	/*
@@ -277,11 +272,6 @@ void idSoundHardware_OpenAL::Shutdown()
 	voices.Clear();
 	freeVoices.Clear();
 	zombieVoices.Clear();
-	
-	// ---------------------
-	// Shutdown the Doom classic sound system.
-	// ---------------------
-	I_ShutdownSoundHardware();
 	
 	alcMakeContextCurrent( NULL );
 	
@@ -373,7 +363,7 @@ void idSoundHardware_OpenAL::Update()
 {
 	if( openalDevice == NULL )
 	{
-		int nowTime = Sys_Milliseconds();
+		int nowTime = sys->Milliseconds();
 		if( lastResetTime + 1000 < nowTime )
 		{
 			lastResetTime = nowTime;

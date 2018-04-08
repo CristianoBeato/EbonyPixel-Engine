@@ -28,8 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // DG: SoundSample seems to be XAudio-independent, so this is just a copy of idSoundSample_XAudio2
 
-#include "../../idlib/precompiled.h"
-#include "../snd_local.h"
+#include "precompiled.h"
+#include "sound/snd_local.h"
 
 extern idCVar s_useCompression;
 extern idCVar s_noSound;

@@ -327,11 +327,15 @@ public:
 #include "BitMsg.h"
 #include "MapFile.h"
 #include "Timer.h"
-#include "Thread.h"
+#include "threading/Thread.h"
 #include "Swap.h"
 #include "Callback.h"
-#include "ParallelJobList.h"
+#include "threading/ParallelJobList.h"
 
 #include "SoftwareCache.h"
+
+//Beato Begin
+#include "SmartPtr.h"
+//Beato End
 
 #endif	/* !__LIB_H__ */

@@ -1519,7 +1519,7 @@ idFile_Permanent::Timestamp
 */
 ID_TIME_T idFile_Permanent::Timestamp() const
 {
-	ID_TIME_T ts = Sys_FileTimeStamp( o );
+	ID_TIME_T ts = sys->FileTimeStamp( o );
 	return ts;
 }
 

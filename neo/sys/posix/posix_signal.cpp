@@ -171,7 +171,7 @@ void Posix_InitSigs( )
 Sys_SetFatalError
 ==================
 */
-void Sys_SetFatalError( const char* error )
+void Posix_SetFatalError( const char* error )
 {
 	strncpy( fatalError, error, sizeof( fatalError ) );
 }

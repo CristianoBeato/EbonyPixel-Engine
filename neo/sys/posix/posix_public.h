@@ -31,40 +31,41 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <signal.h>
 
-void		Posix_QueEvent( sysEventType_t type, int value, int value2, int ptrLength, void* ptr );
-const char*	Posix_Cwd();
-
 // called first thing. does InitSigs and various things
 void		Posix_EarlyInit( );
 // called after common has been initialized
 void		Posix_LateInit( );
-
-void		Posix_InitPThreads( );
 void		Posix_InitSigs( );
 void		Posix_ClearSigs( );
-
+void		Posix_ReLaunch(void);
 void		Posix_Exit( int ret );
 void		Posix_SetExit( int ret ); // override the exit code
 void		Posix_SetExitSpawn( const char* exeName ); // set the process to be spawned when we quit
 
-bool		Posix_AddKeyboardPollEvent( int key, bool state );
-bool		Posix_AddMousePollEvent( int action, int value );
-
-void		Posix_PollInput();
-void		Posix_InitConsoleInput();
 void		Posix_Shutdown();
-
+void		Posix_OpenURL(const char* url, bool quit);
 void		Sys_FPE_handler( int signum, siginfo_t* info, void* context );
 void		Sys_DoStartProcess( const char* exeName, bool dofork = true ); // if not forking, current process gets replaced
 
+void		Posix_InitConsoleInput();
 char*		Posix_ConsoleInput();
+void		Posix_StartProcess(const char* exeName, bool quit);
+void		Posix_SetFatalError(const char* error);
 
-double 		MeasureClockTicks();
+void		tty_Del();
+void		tty_Left();
+void		tty_Right();
+void		tty_Hide();
+void		tty_Show();
+void		tty_FlushIn();
 
 #ifdef __APPLE__
 enum clk_id_t { CLOCK_REALTIME, CLOCK_MONOTONIC, CLOCK_MONOTONIC_RAW };
 int clock_gettime( clk_id_t clock, struct timespec* tp );
 #endif
+
+static const char** cmdargv;
+static int cmdargc;
 
 #endif
 

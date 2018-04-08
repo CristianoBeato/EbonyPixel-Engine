@@ -32,19 +32,10 @@ If you have questions concerning this license or the applicable additional terms
 //#pragma optimize( "", off )
 
 #include "dmap.h"
-#ifdef WIN32
-#include <windows.h>
-#include <GL/gl.h>
-#endif
 
 /*
-
   New vertexes will be created where edges cross.
-
   optimization requires an accurate t junction fixer.
-
-
-
 */
 
 idBounds	optBounds;

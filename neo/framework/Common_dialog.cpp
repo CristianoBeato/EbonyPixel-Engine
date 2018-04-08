@@ -30,6 +30,13 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Common_dialog.h"
 
+//Beato Begin: this is removed from precompiled header if logic is build on DLL
+#ifdef GAME_DLL
+#	include "KeyInput.h"
+#endif // GAME_DLL
+//Beato End
+
+
 idCVar popupDialog_debug( "popupDialog_debug", "0", CVAR_BOOL | CVAR_ARCHIVE, "display debug spam" );
 
 extern idCVar g_demoMode;
@@ -273,7 +280,7 @@ void idCommonDialog::AddDialog( gameDialogMessages_t msg, dialogType_t type, idS
 	info.cancelCB = cancelCallback;
 	info.clear = false;
 	info.pause = pause;
-	info.startTime = Sys_Milliseconds();
+	info.startTime = sys->Milliseconds();
 	info.killTime = 0;
 	info.leaveOnClear = leaveOnMapHeapReset;
 	info.renderDuringLoad = renderDuringLoad;
@@ -313,7 +320,7 @@ void idCommonDialog::AddDynamicDialog( gameDialogMessages_t msg, const idStaticL
 	info.renderDuringLoad = renderDuringLoad;
 	
 	info.clear = false;
-	info.startTime = Sys_Milliseconds();
+	info.startTime = sys->Milliseconds();
 	info.killTime = 0;
 	
 	AddDialogInternal( info );
@@ -329,25 +336,17 @@ void idCommonDialog::AddDialogInternal( idDialogInfo& info )
 
 	// don't add the dialog if it's already in the list, we never want to show a duplicate dialog
 	if( HasDialogMsg( info.msg, NULL ) )
-	{
 		return;
-	}
 	
 	// Remove the delete confirmation if we remove the device and ask for a storage confirmation
 	if( info.msg == GDM_STORAGE_REQUIRED )
 	{
 		if( HasDialogMsg( GDM_DELETE_SAVE, NULL ) )
-		{
 			ClearDialog( GDM_DELETE_SAVE, NULL, 0 );
-		}
 		if( HasDialogMsg( GDM_DELETE_AUTOSAVE, NULL ) )
-		{
 			ClearDialog( GDM_DELETE_AUTOSAVE, NULL, 0 );
-		}
 		if( HasDialogMsg( GDM_LOAD_DAMAGED_FILE, NULL ) )
-		{
 			ClearDialog( GDM_LOAD_DAMAGED_FILE, NULL, 0 );
-		}
 	}
 	
 	if( info.acceptCB != NULL )
@@ -427,7 +426,7 @@ void idCommonDialog::ShowDialog( const idDialogInfo& info )
 	// here instead of add dialog to make sure we meet the TCR, otherwise it has a chance to be visible for less than 1 second
 	if( DialogMsgShouldWait( info.msg ) && !dialogInUse )
 	{
-		startSaveTime = Sys_Milliseconds();
+		startSaveTime = sys->Milliseconds();
 		stopSaveTime = 0;
 	}
 	
@@ -545,7 +544,7 @@ void idCommonDialog::RemoveWaitDialogs()
 	{
 		if( DialogMsgShouldWait( messageList[index].msg ) )
 		{
-			if( Sys_Milliseconds() >= messageList[index].killTime && messageList[index].waitClear )
+			if(sys->Milliseconds() >= messageList[index].killTime && messageList[index].waitClear )
 			{
 				messageList[index].clear = true;
 				messageList[index].waitClear = false;
@@ -631,12 +630,12 @@ void idCommonDialog::ClearDialog( gameDialogMessages_t msg, const char* location
 					continue;
 				}
 				
-				int timeShown = Sys_Milliseconds() - messageList[index].startTime;
+				int timeShown = sys->Milliseconds() - messageList[index].startTime;
 				
 				// for the time being always use the long saves
 				if( timeShown < dialog_saveClearLevel.GetInteger() )
 				{
-					messageList[index].killTime = Sys_Milliseconds() + ( dialog_saveClearLevel.GetInteger() - timeShown );
+					messageList[index].killTime = sys->Milliseconds() + ( dialog_saveClearLevel.GetInteger() - timeShown );
 					messageList[index].waitClear = true;
 				}
 				else
@@ -765,7 +764,7 @@ void idCommonDialog::Render( bool loading )
 	{
 		int startTime = messageList[0].startTime;
 		int endTime = startTime + PC_KEYBOARD_WAIT;
-		int timeRemaining = ( endTime - Sys_Milliseconds() ) / 1000;
+		int timeRemaining = ( endTime - sys->Milliseconds() ) / 1000;
 		
 		if( timeRemaining <= 0 )
 		{
@@ -790,12 +789,12 @@ void idCommonDialog::Render( bool loading )
 	
 	if( dialog->IsActive() )
 	{
-		dialog->Render( renderSystem, Sys_Microseconds() );
+		dialog->Render( renderSystem, sys->Microseconds() );
 	}
 	
 	if( saveIndicator != NULL && saveIndicator->IsActive() )
 	{
-		saveIndicator->Render( renderSystem, Sys_Microseconds() );
+		saveIndicator->Render( renderSystem, sys->Microseconds() );
 	}
 }
 

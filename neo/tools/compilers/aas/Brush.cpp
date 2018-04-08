@@ -44,14 +44,14 @@ If you have questions concerning this license or the applicable additional terms
 DisplayRealTimeString
 ============
 */
-void DisplayRealTimeString( const char* string, ... )
+void DisplayRealTimeString( char* string, ... )
 {
 	va_list argPtr;
 	char buf[MAX_STRING_CHARS];
 	static int lastUpdateTime;
 	int time;
 	
-	time = Sys_Milliseconds();
+	time = sys->Milliseconds();
 	if( time > lastUpdateTime + OUTPUT_UPDATE_TIME )
 	{
 		va_start( argPtr, string );

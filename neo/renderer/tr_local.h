@@ -33,12 +33,16 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "precompiled.h"
 
-#include "GLState.h"
-#include "ScreenRect.h"
-#include "ImageOpts.h"
-#include "Image.h"
-#include "Font.h"
-#include "Framebuffer.h"
+#include "renderer/Font.h"
+#include "renderer/OpenGL/GLState.h"
+#include "renderer/context/ScreenRect.h"
+#include "renderer/backend/Framebuffer.h"
+
+//IdImage gestor
+#include "renderer/Image/Image.h"
+#include "renderer/Image/ImageManager.h"
+#include "renderer/Image/Image_loader.h"
+#include "renderer/Image/Image_process.h"
 
 // everything that is needed by the backend needs
 // to be double buffered to allow it to run in
@@ -90,11 +94,17 @@ SURFACES
 ==============================================================================
 */
 
-#include "ModelDecal.h"
-#include "ModelOverlay.h"
-#include "Interaction.h"
+#include "renderer/models/ModelDecal.h"
+#include "renderer/models/ModelOverlay.h"
+#include "renderer/backEnd/Interaction.h"
+
+//Beato Begin: Foward definitions
+class idImage;
+class idImageManager;
+//Beato End
 
 class idRenderWorldLocal;
+
 struct viewEntity_t;
 struct viewLight_t;
 
@@ -862,8 +872,6 @@ public:
 		return frameCount;
 	};
 	
-	void					OnFrame();
-	
 public:
 	// renderer globals
 	bool					registered;		// cleared at shutdown, set at InitOpenGL
@@ -1179,10 +1187,7 @@ struct vidMode_t
 	}
 };
 
-// the number of displays can be found by itterating this until it returns false
-// displayNum is the 0 based value passed to EnumDisplayDevices(), you must add
-// 1 to this to get an r_fullScreen value.
-bool R_GetModeListForDisplay( const int displayNum, idList<vidMode_t>& modeList );
+
 
 struct glimpParms_t
 {
@@ -1196,32 +1201,6 @@ struct glimpParms_t
 	int			displayHz;
 	int			multiSamples;
 };
-
-// DG: R_GetModeListForDisplay is called before GLimp_Init(), but SDL needs SDL_Init() first.
-// So add PreInit for platforms that need it, others can just stub it.
-void		GLimp_PreInit();
-
-// If the desired mode can't be set satisfactorily, false will be returned.
-// If succesful, sets glConfig.nativeScreenWidth, glConfig.nativeScreenHeight, and glConfig.pixelAspect
-// The renderer will then reset the glimpParms to "safe mode" of 640x480
-// fullscreen and try again.  If that also fails, the error will be fatal.
-bool		GLimp_Init( glimpParms_t parms );
-
-// will set up gl up with the new parms
-bool		GLimp_SetScreenParms( glimpParms_t parms );
-
-// Destroys the rendering context, closes the window, resets the resolution,
-// and resets the gamma ramps.
-void		GLimp_Shutdown();
-
-// Sets the hardware gamma ramps for gamma and brightness adjustment.
-// These are now taken as 16 bit values, so we can take full advantage
-// of dacs with >8 bits of precision
-void		GLimp_SetGamma( unsigned short red[256],
-							unsigned short green[256],
-							unsigned short blue[256] );
-
-
 
 /*
 ============================================================
@@ -1521,25 +1500,22 @@ void RB_ShowDestinationAlpha();
 void RB_ShowOverdraw();
 void RB_RenderDebugTools( drawSurf_t** drawSurfs, int numDrawSurfs );
 void RB_ShutdownDebugTools();
-void RB_SetVertexColorParms( stageVertexColor_t svc );
 
 //=============================================
 
-#include "ResolutionScale.h"
-#include "RenderLog.h"
-#include "jobs/ShadowShared.h"
-#include "jobs/prelightshadowvolume/PreLightShadowVolume.h"
-#include "jobs/staticshadowvolume/StaticShadowVolume.h"
-#include "jobs/dynamicshadowvolume/DynamicShadowVolume.h"
-#include "GraphicsAPIWrapper.h"
-#include "GLMatrix.h"
+#include "renderer/Context/ResolutionScale.h"
+#include "renderer/Context/RenderLog.h"
+#include "renderer/jobs/ShadowShared.h"
+#include "renderer/jobs/PreLightShadowVolume.h"
+#include "renderer/jobs/StaticShadowVolume.h"
+#include "renderer/jobs/DynamicShadowVolume.h"
+#include "renderer/OpenGL/GraphicsAPIWrapper.h"
+#include "renderer/GLMatrix.h"
 
-
-
-#include "BufferObject.h"
-#include "RenderProgs.h"
-#include "RenderWorld_local.h"
-#include "GuiModel.h"
-#include "VertexCache.h"
+#include "renderer/BufferObject.h"
+#include "renderer/backEnd/RenderProgs.h"
+#include "renderer/RenderWorld/RenderWorld_local.h"
+#include "renderer/GuiModel.h"
+#include "renderer/VertexCache.h"
 
 #endif /* !__TR_LOCAL_H__ */

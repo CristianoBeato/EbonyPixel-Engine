@@ -50,8 +50,7 @@ If you have questions concerning this license or the applicable additional terms
 #define EDIT_ID			100
 #define INPUT_ID		101
 
-#define	COMMAND_HISTORY	64
-
+#if 0
 typedef struct
 {
 	HWND		hWnd;
@@ -76,7 +75,6 @@ typedef struct
 	HWND		hwndInputLine;
 	
 	char		errorString[80];
-	
 	char		consoleText[512], returnedText[512];
 	bool		quitOnClose;
 	int			windowWidth, windowHeight;
@@ -116,7 +114,7 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 			else
 			{
 				Sys_ShowConsole( 0, false );
-				win32.win_viewlog.SetBool( false );
+				win_viewlog.SetBool( false );
 			}
 			return 0;
 		case WM_CTLCOLORSTATIC:
@@ -162,7 +160,7 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 				else
 				{
 					cmdString = Mem_CopyString( "quit" );
-					Sys_QueEvent( SE_CONSOLE, 0, 0, strlen( cmdString ) + 1, cmdString, 0 );
+					//Sys_QueEvent( SE_CONSOLE, 0, 0, strlen( cmdString ) + 1, cmdString, 0 );
 				}
 			}
 			else if( wParam == CLEAR_ID )
@@ -310,8 +308,9 @@ LONG WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 /*
 ** Sys_CreateConsole
 */
-void Sys_CreateConsole()
+void Win_CreateConsole()
 {
+#if 0
 	HDC hDC;
 	WNDCLASS wc;
 	RECT rect;
@@ -327,8 +326,8 @@ void Sys_CreateConsole()
 	wc.lpfnWndProc   = ( WNDPROC ) ConWndProc;
 	wc.cbClsExtra    = 0;
 	wc.cbWndExtra    = 0;
-	wc.hInstance     = win32.hInstance;
-	wc.hIcon         = LoadIcon( win32.hInstance, MAKEINTRESOURCE( IDI_ICON1 ) );
+	//wc.hInstance     = win32.hInstance;
+	//wc.hIcon         = LoadIcon( win32.hInstance, MAKEINTRESOURCE( IDI_ICON1 ) );
 	wc.hCursor       = LoadCursor( NULL, IDC_ARROW );
 	wc.hbrBackground = ( struct HBRUSH__* )COLOR_WINDOW;
 	wc.lpszMenuName  = 0;
@@ -452,13 +451,15 @@ void Sys_CreateConsole()
 	{
 		s_wcd.historyEditLines[i].Clear();
 	}
+#endif
 }
 
 /*
 ** Sys_DestroyConsole
 */
-void Sys_DestroyConsole()
+void Win_DestroyConsole()
 {
+#if 0
 	if( s_wcd.hWnd )
 	{
 		ShowWindow( s_wcd.hWnd, SW_HIDE );
@@ -466,12 +467,13 @@ void Sys_DestroyConsole()
 		DestroyWindow( s_wcd.hWnd );
 		s_wcd.hWnd = 0;
 	}
+#endif
 }
 
 /*
-** Sys_ShowConsole
+** Win_ShowConsole
 */
-void Sys_ShowConsole( int visLevel, bool quitOnClose )
+void Win_ShowConsole( int visLevel, bool quitOnClose )
 {
 
 	s_wcd.quitOnClose = quitOnClose;
@@ -502,9 +504,8 @@ void Sys_ShowConsole( int visLevel, bool quitOnClose )
 /*
 ** Sys_ConsoleInput
 */
-char* Sys_ConsoleInput()
+char* Win_ConsoleInput(void)
 {
-
 	if( s_wcd.consoleText[0] == 0 )
 	{
 		return NULL;
@@ -598,24 +599,4 @@ void Conbuf_AppendText( const char* pMsg )
 	SendMessage( s_wcd.hwndBuffer, EM_SCROLLCARET, 0, 0 );
 	SendMessage( s_wcd.hwndBuffer, EM_REPLACESEL, 0, ( LPARAM ) buffer );
 }
-
-/*
-** Win_SetErrorText
-*/
-void Win_SetErrorText( const char* buf )
-{
-	idStr::Copynz( s_wcd.errorString, buf, sizeof( s_wcd.errorString ) );
-	if( !s_wcd.hwndErrorBox )
-	{
-		s_wcd.hwndErrorBox = CreateWindow( "static", NULL, WS_CHILD | WS_VISIBLE | SS_SUNKEN,
-										   6, 5, 526, 30,
-										   s_wcd.hWnd,
-										   ( HMENU ) ERRORBOX_ID,	// child window ID
-										   win32.hInstance, NULL );
-		SendMessage( s_wcd.hwndErrorBox, WM_SETFONT, ( WPARAM ) s_wcd.hfBufferFont, 0 );
-		SetWindowText( s_wcd.hwndErrorBox, s_wcd.errorString );
-		
-		DestroyWindow( s_wcd.hwndInputLine );
-		s_wcd.hwndInputLine = NULL;
-	}
-}
+#endif
