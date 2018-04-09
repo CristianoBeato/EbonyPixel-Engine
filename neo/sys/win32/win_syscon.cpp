@@ -38,7 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <conio.h>
 
 #include "win_local.h"
-#include "rc/doom_resource.h"
+#include "rc/game_resource.h"
 
 #define COPY_ID			1
 #define QUIT_ID			2

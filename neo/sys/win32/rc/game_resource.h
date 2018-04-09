@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by doom.rc
+// Used by game.rc
 //
 #define IDI_ICON1                       4001
 #define IDR_IDR_USYSGZPS11              4002

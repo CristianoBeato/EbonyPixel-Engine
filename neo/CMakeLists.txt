@@ -629,7 +629,7 @@ set(WIN32_RESOURCES
 	# sys/win32/rc/res/dbg_empty.ico
 	# sys/win32/rc/res/dbg_open.bmp
 	# sys/win32/rc/res/dbg_toolbar.bmp
-	sys/win32/rc/res/doom.ico
+	sys/win32/rc/res/game.ico
 	# sys/win32/rc/res/fpoint.cur
 	# sys/win32/rc/res/fxed_link.ico
 	# sys/win32/rc/res/fxed_toolbar.bmp
@@ -658,7 +658,7 @@ set(WIN32_RESOURCES
 	)
 
 #if(USE_MFC_TOOLS)
-	list(APPEND WIN32_RESOURCES sys/win32/rc/doom.rc)
+	list(APPEND WIN32_RESOURCES sys/win32/rc/game.rc)
 #else()
 #	list(APPEND WIN32_RESOURCES sys/win32/rc/doom_nomfc.rc)
 #endif()
@@ -704,7 +704,7 @@ source_group("sys\\posix" FILES ${POSIX_SOURCES})
 source_group("sys\\common" FILES ${COMMON_INCLUDES})
 source_group("sys\\common" FILES ${COMMON_SOURCES})
 
-set(RBDOOM3_INCLUDES
+set(EBONY_INCLUDES
 			${GWEN_INCLUDES}
 			${IRRXML_INCLUDES}
 			${JPEG_INCLUDES}
@@ -719,7 +719,7 @@ set(RBDOOM3_INCLUDES
 			${COMMON_INCLUDES}
 			)
 			
-set(RBDOOM3_SOURCES
+set(EBONY_SOURCES
 			${GWEN_LIB_SOURCES}
 			${IRRXML_SOURCES}
 			${JPEG_SOURCES}
@@ -739,13 +739,13 @@ add_definitions(-D__DOOM__
 				)
 
 if(USE_PRECOMPILED_HEADERS) 
-	set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${GWEN_LIB_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${GLEW_SOURCES})
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)	
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/precompiled.cpp)	
+	set(EBONY_PRECOMPILED_SOURCES ${EBONY_SOURCES})
+	list(REMOVE_ITEM EBONY_PRECOMPILED_SOURCES ${GWEN_LIB_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${GLEW_SOURCES})
+	list(REMOVE_ITEM EBONY_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)	
+	list(REMOVE_ITEM EBONY_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/precompiled.cpp)	
 endif()
 
-set( RBDOOM3_LIBRARIES
+set( EBONY_LIBRARIES
 			idlib
 			renderer
 			framework
@@ -765,19 +765,19 @@ set( RBDOOM3_LIBRARIES
 
 
 if(MSVC)
-	list(APPEND RBDOOM3_INCLUDES
+	list(APPEND EBONY_INCLUDES
 		${SYS_INCLUDES} 
 		${WIN32_INCLUDES})
 		
-	list(APPEND RBDOOM3_SOURCES
+	list(APPEND EBONY_SOURCES
 		${SYS_SOURCES}
 		${WIN32_SOURCES})
 
-	list(REMOVE_DUPLICATES RBDOOM3_SOURCES)
+	list(REMOVE_DUPLICATES EBONY_SOURCES)
 
 	if(USE_PRECOMPILED_HEADERS)
 		set_source_files_properties(
-		${RBDOOM3_PRECOMPILED_SOURCES}
+		${EBONY_PRECOMPILED_SOURCES}
 		PROPERTIES
 		COMPILE_FLAGS "/Yuprecompiled.h"
 		OBJECT_DEPENDS "precompiled.pch"
@@ -790,31 +790,31 @@ if(MSVC)
 		)
 	endif()
 	
-	list(APPEND RBDOOM3_SOURCES ${WIN32_RESOURCES})
+	list(APPEND EBONY_SOURCES ${WIN32_RESOURCES})
 	
-	add_executable(RBDoom3BFG WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+	add_executable(EbonyPixel WIN32 ${EBONY_INCLUDES} ${EBONY_SOURCES})
 
-	add_dependencies(RBDoom3BFG idlib framework game renderer sound tools)
-	target_link_libraries(RBDoom3BFG
+	add_dependencies(EbonyPixel idlib framework game renderer sound tools)
+	target_link_libraries(EbonyPixel
 		dbghelp
 		iphlpapi
 		winmm
 		wsock32.lib
-		${RBDOOM3_LIBRARIES}
+		${EBONY_LIBRARIES}
 		)
 		
 	#CMAKE_BINARY_DIR
 	if(CMAKE_CL_64)
-		install(TARGETS RBDoom3BFG
+		install(TARGETS EbonyPixel
 			RUNTIME DESTINATION .)
 	else()
-		install(TARGETS RBDoom3BFG
+		install(TARGETS EbonyPixel
 			RUNTIME DESTINATION .)
 	endif()
 	
 else()
 
-	list(APPEND RBDOOM3_SOURCES
+	list(APPEND EBONY_SOURCES
 		${SYS_INCLUDES} ${SYS_SOURCES})
 
 	if(UNIX)
@@ -824,14 +824,14 @@ else()
 			list(REMOVE_ITEM POSIX_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/posix/platform_osx.cpp)
 		endif()
 
-		list(APPEND RBDOOM3_SOURCES
+		list(APPEND EBONY_SOURCES
 			${POSIX_INCLUDES} ${POSIX_SOURCES})
 	endif()
 
-	list(REMOVE_DUPLICATES RBDOOM3_SOURCES)
+	list(REMOVE_DUPLICATES EBONY_SOURCES)
 	
 	if(USE_PRECOMPILED_HEADERS) 	
-		foreach( src_file ${RBDOOM3_PRECOMPILED_SOURCES} )
+		foreach( src_file ${EBONY_PRECOMPILED_SOURCES} )
 			#message(STATUS "-include precompiled.h for ${src_file}")
 			set_source_files_properties(
 				${src_file}
@@ -854,13 +854,13 @@ else()
 	SEPARATE_ARGUMENTS(_compiler_FLAGS)
 	
 	if(USE_PRECOMPILED_HEADERS)
-		# we need to recreate the precompiled header for RBDoom3BFG 
+		# we need to recreate the precompiled header for EbonyPixel 
 		# (i.e. can't use the one created for idlib before)
 		# because some definitions (e.g. -D__IDLIB__ -D__DOOM_DLL__) differ
-		add_custom_target(precomp_header_rbdoom3bfg ALL
+		add_custom_target(precomp_header_elbony ALL
 				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
 				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
+				COMMENT "Creating idlib/precompiled.h.gch for EbonyPixel"
 				)
 	endif()
 	
@@ -881,17 +881,17 @@ else()
 				)
 				
 		# make sure this is run after creating idlib
-		add_dependencies(precomp_header_rbdoom3bfg idlib)
+		add_dependencies(precomp_header_elbony idlib)
 	endif()
 	
-	add_executable(RBDoom3BFG WIN32 ${RBDOOM3_SOURCES})
+	add_executable(EbonyPixel WIN32 ${EBONY_SOURCES})
 
 	if (USE_PRECOMPILED_HEADERS)
 		# make sure precompiled header is created before executable is compiled
-		add_dependencies(RBDoom3BFG precomp_header_rbdoom3bfg)
+		add_dependencies(EbonyPixel precomp_header_elbony)
 		
 		# make sure precompiled header is deleted after executable is compiled
-		add_dependencies(rm_precomp_header RBDoom3BFG)
+		add_dependencies(rm_precomp_header EbonyPixel)
 	endif()	
 
 	if(NOT WIN32)
@@ -899,8 +899,8 @@ else()
 			set(RT_LIBRARY rt)
 		endif()
 
-		target_link_libraries(RBDoom3BFG		
-			${RBDOOM3_LIBRARIES}
+		target_link_libraries(EbonyPixel		
+			${EBONY_LIBRARIES}
 			${RT_LIBRARY}
 			pthread
 			)
