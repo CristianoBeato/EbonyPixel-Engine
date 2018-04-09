@@ -1,66 +1,44 @@
-    ____   ____   ____                           _____  ____   ______ ______
-   / __ \ / __ ) / __ \ ____   ____   ____ ___  |__  / / __ ) / ____// ____/
-  / /_/ // __  |/ / / // __ \ / __ \ / __ `__ \  /_ < / __  |/ /_   / / __  
- / _, _// /_/ // /_/ // /_/ // /_/ // / / / / /___/ // /_/ // __/  / /_/ /  
-/_/ |_|/_____//_____/ \____/ \____//_/ /_/ /_//____//_____//_/     \____/   
-_________________________________________
+###==========================================================================###
+						Ebony Pixel Game Engine
+###==========================================================================###
 
-
-RBDOOM-3-BFG Readme - https://github.com/RobertBeckebans/RBDOOM-3-BFG
-
-Thank you for downloading RBDOOM-3-BFG.
+Thank you for downloading Ebony Pixel
 
 
 
-_______________________________________
-
+=========================================
 CONTENTS
-_______________________________
-
+=========================================
 
 
 This file contains the following sections:
 
 	1) SYSTEM REQUIREMENT
-
 	2) GENERAL NOTES
-	
 	3) LICENSE
-	
 	4) GETTING THE SOURCE CODE
-
-	5) COMPILING ON WIN32 WITH VISUAL C++ 2013 EXPRESS EDITION
-
-	6) COMPILING ON GNU/LINUX
+	5) COMPILING ON WIN32
+		5.1) WITH VISUAL C++ 2013 EXPRESS EDITION
+		5.2) WITH MINGW 
+	6) COMPILING ON WIN32 WITH MINGW
+	7) COMPILING ON GNU/LINUX
+	8) INSTALLATION, GETTING THE GAMEDATA, RUNNING THE GAME
+	9) OVERALL CHANGES
+	10) CONSOLE VARIABLES
+	11) KNOWN ISSUES
+	12) BUG REPORTS
+	13) GAME MODIFICATIONS
+	14) CODE LICENSE EXCEPTIONS
 	
-	7) INSTALLATION, GETTING THE GAMEDATA, RUNNING THE GAME
-	
-	8) OVERALL CHANGES
-	
-	9) CONSOLE VARIABLES
-	
-	10) KNOWN ISSUES
-	
-	11) BUG REPORTS
-	
-	12) GAME MODIFICATIONS
-	
-	13) CODE LICENSE EXCEPTIONS
-
-
-
-___________________________________
-
+=========================================
 1) SYSTEM REQUIREMENTS
-__________________________
-
-
+=========================================
 
 Minimum system requirements:
 
 	CPU: 2 GHz Intel compatible
 	System Memory: 512MB
-	Graphics card: Any graphics card that supports Direct3D 10 and OpenGL >= 3.2
+	Graphics card: Any graphics card that supports Direct3D 11 and OpenGL >= 4.0
 
 Recommended system requirements:
 
@@ -68,13 +46,9 @@ Recommended system requirements:
 	System Memory: 1024MB+
 	Graphics card: Geforce 9600 GT, ATI HD 5650 or higher. 
 
-
-
-
-_______________________________
-
+=========================================
 2) GENERAL NOTES
-______________________
+=========================================
 
 This release does not contain any game data, the game data is still
 covered by the original EULA and must be obeyed as usual.
@@ -94,8 +68,7 @@ any other Steam features.
 
 Bink:
 -----
-The RBDoom3BFG Edition GPL Source Code release includes functionality for rendering Bink Videos through FFmpeg.
-
+The Ebony Pixel engine Code release does not include functionality for rendering Bink Videos.
 
 Back End Rendering of Stencil Shadows:
 --------------------------------------
@@ -105,100 +78,69 @@ of stencil shadows via the "depth fail" method, a functionality commonly known a
 
 
 
-_______________________________
-
+=========================================
 3) LICENSE
-______________________
+=========================================
 
 
 See COPYING.txt for the GNU GENERAL PUBLIC LICENSE
+ADDITIONAL TERMS:  The Ebony Pixel Engine Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU GPL which accompanied the Doom 3 BFG Edition GPL Source Code.  If not, please request a copy in writing from id Software at id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
-ADDITIONAL TERMS:  The Doom 3 BFG Edition GPL Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU GPL which accompanied the Doom 3 BFG Edition GPL Source Code.  If not, please request a copy in writing from id Software at id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
-
-____________________________________________
-
+=========================================
 4) GETTING THE SOURCE CODE
-___________________________________
+=========================================
 
 This project's GitHub.net Git repository can be checked out through Git with the following instruction set: 
 
-	> git clone https://github.com/RobertBeckebans/RBDOOM-3-BFG.git
+	> git clone https://github.com/CristianoBeato/EbonyPixel-Engine.git
 
 If you don't want to use git, you can download the source as a zip file at
-	https://github.com/RobertBeckebans/RBDOOM-3-BFG/archive/master.zip
+	https://codeload.github.com/CristianoBeato/EbonyPixel-Engine/zip/master
 
 
 
-___________________________________________________________________
+=========================================
+5) COMPILING ON WIN32
+=========================================
 
-5) COMPILING ON WIN32 WITH VISUAL C++ 2013 EXPRESS EDITION
-__________________________________________________________
+	first download the DirectX SDK (June 2010) http://www.microsoft.com/en-us/download/details.aspx?id=6812
 
-1. Download and install the Visual C++ 2013 Express Edition.
-
-2. Download the DirectX SDK (June 2010) here:
-	http://www.microsoft.com/en-us/download/details.aspx?id=6812
-
-3. Download and install the latest CMake.
-
-4. Generate the VC13 projects using CMake by doubleclicking a matching configuration .bat file in the neo/ folder.
-
-5. Use the VC13 solution to compile what you need:
-	RBDOOM-3-BFG/build/RBDoom3BFG.sln
+	and download and install the latest CMake.
+	__________________________________________
+	5.1)WITH VISUAL C++ 2013 EXPRESS EDITION
+	__________________________________________
 	
-6. Download ffmpeg-20151105-git-c878082-win32-shared.7z from ffmpeg.zeranoe.com/builds/win32/shared
- 	or
-	ffmpeg-20151105-git-c878082-win64-shared.7z from ffmpeg.zeranoe.com/builds/win64/shared
+		1. Download and install the Visual C++ 2013 Express Edition.
 
-7. Extract the FFmpeg DLLs to your current build directory under RBDOOM-3-BFG/build/
-
-
-__________________________________
-
-6) COMPILING ON GNU/LINUX
-_________________________
-
-
-1. You need the following dependencies in order to compile RBDoom3BFG with all features:
- 
-	On Debian or Ubuntu:
-
-		> apt-get install cmake libsdl2-dev libopenal-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+		2. dowload the needed libs
+			SDL2 development libraries - https://www.libsdl.org/release/SDL2-devel-2.0.8-VC.zip
+			SDL2_TTF - Development libraries: https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-2.0.14-VC.zip
 	
-	On Fedora
+			//optional 
+			openal 1.1 https://www.openal.org/downloads/OpenAL11CoreSDK.zip
 
-		// TODO add ffmpeg libs for bink videos
+		3. Generate the VC13 projects using CMake by doubleclicking a matching configuration .bat file in the neo/ folder.
+
+	__________________________________________
+	5.2)WITH VISUAL C++ 2013 EXPRESS EDITION
+	__________________________________________
+	
+		1. Download and install the MingW/Code Blocks
+			MingW - https://sourceforge.net/projects/mingw/files/latest/download?source=files
+			MingW/Code Blocks - http://www.codeblocks.org/downloads/26
 		
-		> yum install cmake SDL-devel openal-devel
-	
-	On ArchLinux 
-	
-		> sudo pacman -S sdl2 ffmpeg openal cmake
-	
-	On openSUSE (tested in 13.1)
-	
-		> zypper in openal-soft-devel cmake libSDL-devel libffmpeg1-devel
-	
-		For SDL 2 replace "libSDL-devel" with "libSDL2-devel".
-		"libffmpeg1-devel" requires the PackMan repository. If you don't have that repo, and don't want to add it, remove the "libffmpeg1-devel" option and compile without ffmpeg support.
-		If you have the repo and compiles with ffmpeg support, make sure you download "libffmpeg1-devel", and not "libffmpeg-devel".
-	
-	Instead of SDL2 development files you can also use SDL1.2. Install SDL 1.2 and add to the cmake parameters -DSDL2=OFF
-	
-	SDL2 has better input support (especially in the console) and better 
-	support for multiple displays (especially in fullscreen mode).
+		2. dowload the needed libs
+			SDL2 development libraries - https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-2.0.14-mingw.tar.gz
+			SDL2_TTF development libraries - https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-2.0.14-mingw.tar.gz
+		
+		3. Generate the MingW/Code Blocks using CMake by doubleclicking a matching configuration .bat file in the neo/ folder.
+		
+=========================================
+6) COMPILING ON GNU/LINUX
+=========================================
+	not tested yet - Work In Progress
 
-
-2. Generate the Makefiles using CMake:
-
-	> cd neo/
-	> ./cmake-eclipse-linux-profile.sh
-	
-3. Compile RBDOOM-3-BFG targets with
-
-	> cd ../build
-	> make
 
 ___________________________________________________
 
@@ -245,12 +187,12 @@ Anyway:
 	/your/path/to/Steam/steamapps/common/DOOM 3 BFG Edition/base/
 	or, if you used SteamCMD, in the path you used above.
 
-4. Copy your RBDoom3BFG executable that you created in 5) or 6) and the FFmpeg DLLs to your own 
+4. Copy your EbPxDemo executable that you created in 5) or 6) and the FFmpeg DLLs to your own 
    Doom 3 BFG directory (/path/to/Doom3BFG).
    
    Your own Doom 3 BFG directory now should look like:
-	/path/to/Doom3BFG/
-	 ->	RBDoom3BFG (or RBDoom3BFG.exe on Windows)
+	/path/to/EbPxDemo/
+	 ->	EbPxDemo (or EbPxDemo.exe on Windows)
 	 -> avcodec-55.dll
 	 -> avdevice-55.dll
 	 -> avfilter-4.dll
@@ -264,7 +206,7 @@ Anyway:
 		 ->	_common.crc
 		 ->	(etc)
 
-5. Run the game by executing the RBDoom3BFG executable.
+5. Run the game by executing the EbPxDemo executable.
 
 6. Enjoy
 
@@ -277,15 +219,13 @@ __________________________________________
 
 - Flexible build system using CMake
 
-- Linux support (32 and 64 bit)
+- Linux support (32 and 64 bit) - TO FIX
 
 - Win64 support
 
-- OS X support
+- OS X support - TO FIX
 
 - OpenAL Soft sound backend primarily developed for Linux but works on Windows as well
-
-- Bink video support through FFmpeg
 
 - PNG image support
 
@@ -352,13 +292,11 @@ ___________________________________________________
 11) BUG REPORTS
 __________________________________________
 
-RBDOOM-3-BFG is not perfect, it is not bug free as every other software.
+EbonyPixel-Engine is not perfect, it is not bug free as every other software.
 For fixing as much problems as possible we need as much bug reports as possible.
 We cannot fix anything if we do not know about the problems.
 
 The best way for telling us about a bug is by submitting a bug report at our GitHub bug tracker page:
-
-	https://github.com/RobertBeckebans/RBDOOM-3-BFG/issues?state=open
 
 The most important fact about this tracker is that we cannot simply forget to fix the bugs which are posted there. 
 It is also a great way to keep track of fixed stuff.
@@ -390,8 +328,8 @@ mod directory, you should first specify your mod directory adding the following 
 so it would end up looking like: RBDoom3BFG +set fs_game modDirectoryName
 
 
-IMPORTANT: RBDOOM-3-BFG does not support old Doom 3 modiciations that include sourcecode modifications in binary form (.dll)
-You can fork RBDOOM-3-BFG and create a new renamed binary that includes all required C++ game code modifications.
+IMPORTANT: EbonyPixel-Engine does not support old Doom 3 modiciations that include sourcecode modifications in binary form (.dll)
+You can fork EbonyPixel-Engine and create a new renamed binary that includes all required C++ game code modifications.
 	
 ____________________________________________________________________________________
 
@@ -399,7 +337,7 @@ ________________________________________________________________________________
 _______________________________________________________________________
 
 
-EXCLUDED CODE:  The code described below and contained in the Doom 3 BFG Edition GPL Source Code release
+EXCLUDED CODE:  The code described below and contained in the EbonyPixel-Engine Source Code release
 is not part of the Program covered by the GPL and is expressly excluded from its terms. 
 You are solely responsible for obtaining from the copyright holder a license for such code and complying with the applicable license terms.
 
@@ -553,44 +491,4 @@ CRC32 Checksum
 -----------------------------------------------------------------------------
 neo/idlib/hashing/CRC32.cpp
 Copyright (C) 1995-1998 Mark Adler
-
-OpenGL headers
----------------------------------------------------------------------------
-neo/renderer/OpenGL/glext.h
-neo/renderer/OpenGL/wglext.h
-
-Copyright (c) 2007-2012 The Khronos Group Inc.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and/or associated documentation files (the
-"Materials"), to deal in the Materials without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Materials, and to
-permit persons to whom the Materials are furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be included
-in all copies or substantial portions of the Materials.
-
-THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-
-Timidity
----------------------------------------------------------------------------
-neo/libs/timidity/*
-
-Copyright (c) 1995 Tuukka Toivonen 
-
-From http://www.cgs.fi/~tt/discontinued.html :
-
-If you'd like to continue hacking on TiMidity, feel free. I'm
-hereby extending the TiMidity license agreement: you can now 
-select the most convenient license for your needs from (1) the
-GNU GPL, (2) the GNU LGPL, or (3) the Perl Artistic License.  
-
 
