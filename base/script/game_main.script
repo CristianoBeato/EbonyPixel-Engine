@@ -1,0 +1,14 @@
+// this file is loaded by engine, it loads all other scripts
+#include "script/base_defines.script"
+
+// defs and util functions
+#include "script/game_defs.script"
+#include "script/game_events.script"
+#include "script/game_utils.script"
+
+void game_main()
+{
+	sys.print( "Entering game_main()\n");
+//	game_count = 0;
+	sys.print( "Exiting game_main()\n" );
+}
