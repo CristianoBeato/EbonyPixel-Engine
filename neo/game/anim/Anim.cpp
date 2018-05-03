@@ -26,11 +26,12 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 
-#include "../Game_local.h"
+#include "game/Game_local.h"
+#include "renderer/models/Model_md5.h"
 
 idCVar binaryLoadAnim( "binaryLoadAnim", "1", 0, "enable binary load/write of idMD5Anim" );
 
@@ -1085,28 +1086,25 @@ void idMD5Anim::CheckModelHierarchy( const idRenderModel* model ) const
 			return;
 		}
 	}
-	
-	const idMD5Joint* modelJoints = model->GetJoints();
+
+//Beato Begin
+	const btGameJoint* modelJoints = model->GetJoints();
+//Beato End
+
 	for( int i = 0; i < jointInfo.Num(); i++ )
 	{
 		int jointNum = jointInfo[ i ].nameIndex;
 		if( modelJoints[ i ].name != animationLib.JointName( jointNum ) )
-		{
 			gameLocal.Error( "Model '%s''s joint names don't match anim '%s''s", model->Name(), name.c_str() );
-		}
+
 		int parent;
 		if( modelJoints[ i ].parent )
-		{
 			parent = modelJoints[ i ].parent - modelJoints;
-		}
 		else
-		{
 			parent = -1;
-		}
+
 		if( parent != jointInfo[ i ].parentNum )
-		{
 			gameLocal.Error( "Model '%s' has different joint hierarchy than anim '%s'", model->Name(), name.c_str() );
-		}
 	}
 }
 

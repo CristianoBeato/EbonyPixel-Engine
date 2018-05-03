@@ -2111,3 +2111,65 @@ CONSOLE_COMMAND( testEndianNessReset, "Tests the read/write compatibility betwee
 {
 	fileSystem->RemoveFile( testEndianNessFilename );
 }
+
+
+/*
+=================================================================================
+btScopedFile
+=================================================================================
+*/
+
+btScopedFile::btScopedFile(const char * relativePath, bool toWrite)
+{
+	if (toWrite)
+		m_fileHandler = fileSystem->OpenFileWrite(relativePath);
+	else
+		m_fileHandler = fileSystem->OpenFileRead(relativePath);
+}
+
+btScopedFile::btScopedFile(const char * relativePath, const char * basePath, bool toWrite)
+{
+	if (toWrite)
+		m_fileHandler = fileSystem->OpenFileWrite(relativePath, basePath);
+	else
+		m_fileHandler = fileSystem->OpenFileRead(relativePath, basePath);
+}
+
+btScopedFile::btScopedFile(idFile* &fileHandler, const char * relativePath, bool toWrite) : m_fileHandler(fileHandler)
+{
+	if (toWrite)
+		m_fileHandler = fileSystem->OpenFileWrite(relativePath);
+	else
+		m_fileHandler = fileSystem->OpenFileRead(relativePath);
+}
+
+btScopedFile::~btScopedFile(void)
+{
+	//close File Handler
+	fileSystem->CloseFile(m_fileHandler);
+}
+
+const idFile * btScopedFile::operator->(void) const
+{
+	return m_fileHandler;
+}
+
+idFile * btScopedFile::operator->(void)
+{
+	return m_fileHandler;
+}
+
+const idFile * btScopedFile::GetInternalPtr(void) const
+{
+	return m_fileHandler;
+}
+
+idFile * btScopedFile::GetInternalPtr(void)
+{
+	return m_fileHandler;
+}
+
+bool btScopedFile::isOpen(void)
+{
+	return m_fileHandler != NULL;
+}

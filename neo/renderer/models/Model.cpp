@@ -5,6 +5,8 @@ Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2012-2016 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
+Copyright (C) 2017-2018 Cristiano Beato
+
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -1051,7 +1053,7 @@ int idRenderModelStatic::NumJoints() const
 idRenderModelStatic::GetJoints
 ================
 */
-const idMD5Joint* idRenderModelStatic::GetJoints() const
+const btGameJoint* idRenderModelStatic::GetJoints() const
 {
 	return NULL;
 }

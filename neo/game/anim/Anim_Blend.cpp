@@ -26,11 +26,12 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-
-#include "../Game_local.h"
+#include "game/Game_local.h"
+#include "renderer/models/Model_md5.h"
+#include "renderer/models/Model_iqm.h"
 
 static const char* channelNames[ ANIM_NumAnimChannels ] =
 {
@@ -2797,7 +2798,7 @@ idDeclModelDef::FindJoint
 const jointInfo_t* idDeclModelDef::FindJoint( const char* name ) const
 {
 	int					i;
-	const idMD5Joint*	joint;
+	const btGameJoint*	joint;
 	
 	if( !modelHandle )
 	{
@@ -2808,9 +2809,7 @@ const jointInfo_t* idDeclModelDef::FindJoint( const char* name ) const
 	for( i = 0; i < joints.Num(); i++, joint++ )
 	{
 		if( !joint->name.Icmp( name ) )
-		{
 			return &joints[ i ];
-		}
 	}
 	
 	return NULL;
@@ -3256,8 +3255,8 @@ bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBi
 	int					num;
 	idStr				filename;
 	idStr				extension;
-	const idMD5Joint*	md5joint;
-	const idMD5Joint*	md5joints;
+	const btGameJoint*	modelJoint;
+	const btGameJoint*	modelJoints;
 	idLexer				src;
 	idToken				token;
 	idToken				token2;
@@ -3336,9 +3335,12 @@ bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBi
 			}
 			filename = token2;
 			filename.ExtractFileExtension( extension );
-			if( extension != MD5_MESH_EXT )
+//Beato Begin:
+			//if( extension != MD5_MESH_EXT )
+			if(extension != MD5_MESH_EXT && extension != IQM_MESH_EXT)
+//Beato End
 			{
-				src.Warning( "Invalid model for MD5 mesh" );
+				src.Warning( "Invalid model for skined mesh" );
 				MakeDefault();
 				return false;
 			}
@@ -3369,15 +3371,15 @@ bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBi
 			joints.SetNum( num );
 			jointParents.SetNum( num );
 			channelJoints[0].SetNum( num );
-			md5joints = modelHandle->GetJoints();
-			md5joint = md5joints;
-			for( i = 0; i < num; i++, md5joint++ )
+			modelJoints = modelHandle->GetJoints();
+			modelJoint = modelJoints;
+			for( i = 0; i < num; i++, modelJoint++ )
 			{
 				joints[i].channel = ANIMCHANNEL_ALL;
 				joints[i].num = static_cast<jointHandle_t>( i );
-				if( md5joint->parent )
+				if( modelJoint->parent )
 				{
-					joints[i].parentNum = static_cast<jointHandle_t>( md5joint->parent - md5joints );
+					joints[i].parentNum = static_cast<jointHandle_t>( modelJoint->parent - modelJoints );
 				}
 				else
 				{
@@ -3726,7 +3728,7 @@ idDeclModelDef::GetJointName
 */
 const char* idDeclModelDef::GetJointName( int jointHandle ) const
 {
-	const idMD5Joint* joint;
+	const btGameJoint* joint;
 	
 	if( !modelHandle )
 	{
@@ -5993,20 +5995,16 @@ idGameEdit::ANIM_CreateAnimFrame
 */
 void idGameEdit::ANIM_CreateAnimFrame( const idRenderModel* model, const idMD5Anim* anim, int numJoints, idJointMat* joints, int time, const idVec3& offset, bool remove_origin_offset )
 {
-	int					i;
-	frameBlend_t		frame;
-	const idMD5Joint*	md5joints;
+	int						i;
+	frameBlend_t			frame;
+	const btGameJoint*		modelJoints;
 	int*					index;
 	
 	if( !model || model->IsDefaultModel() || !anim )
-	{
 		return;
-	}
 	
 	if( numJoints != model->NumJoints() )
-	{
 		gameLocal.Error( "ANIM_CreateAnimFrame: different # of joints in renderEntity_t than in model (%s)", model->Name() );
-	}
 	
 	if( !model->NumJoints() )
 	{
@@ -6015,9 +6013,7 @@ void idGameEdit::ANIM_CreateAnimFrame( const idRenderModel* model, const idMD5An
 	}
 	
 	if( !joints )
-	{
 		gameLocal.Error( "ANIM_CreateAnimFrame: NULL joint frame pointer on model (%s)", model->Name() );
-	}
 	
 	if( numJoints != anim->NumJoints() )
 	{
@@ -6047,19 +6043,15 @@ void idGameEdit::ANIM_CreateAnimFrame( const idRenderModel* model, const idMD5An
 	
 	// first joint is always root of entire hierarchy
 	if( remove_origin_offset )
-	{
 		joints[0].SetTranslation( offset );
-	}
 	else
-	{
 		joints[0].SetTranslation( joints[0].ToVec3() + offset );
-	}
 	
 	// transform the children
-	md5joints = model->GetJoints();
+	modelJoints = model->GetJoints();
 	for( i = 1; i < numJoints; i++ )
 	{
-		joints[i] *= joints[ md5joints[i].parent - md5joints ];
+		joints[i] *= joints[ modelJoints[i].parent - modelJoints ];
 	}
 }
 

@@ -30,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "Model_local.h"
+#include "Model_md5.h"
+#include "Model_iqm.h"
 #include "renderer/tr_local.h"	// just for R_FreeWorldInteractions and R_CreateWorldInteractions
 
 idCVar binaryLoadRenderModels( "binaryLoadRenderModels", "1", 0, "enable binary load/write of render models" );
@@ -350,6 +352,12 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 	{
 		model = new( TAG_MODEL ) idRenderModelMD5;
 	}
+//Beato Begin: Suport for IQM, Internal Quake Model
+	else if (extension.Icmp(IQM_MESH_EXT) == 0)
+	{
+		model = new(TAG_MODEL) idRenderModelIQM;
+	}
+//Beato End
 	else if( extension.Icmp( "md3" ) == 0 )
 	{
 		model = new( TAG_MODEL ) idRenderModelMD3;

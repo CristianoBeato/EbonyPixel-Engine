@@ -448,6 +448,37 @@ protected:
 	idFile* file;	// The managed file pointer.
 };
 
+//Beato Begin: Scope based file ops
+//Based in Scope-Based Resource Management (RAII), October 1, 2014 by Allen Chou
+//http://allenchou.net
+
+class btScopedFile
+{
+public:
+	//open direct file
+	btScopedFile(const char* relativePath, bool toWrite = false);
+	//open file on a relative path
+	btScopedFile(const char* relativePath, const char* basePath, bool toWrite = false);
+	btScopedFile(idFile* &fileHandler, const char* relativePath, bool toWrite = false);
+
+	//automaticaly close the file when quit
+	~btScopedFile(void);
+
+	//chek if file is open
+	bool	isOpen(void);
+
+	//acess to the idFile file functions  
+	const idFile* operator->(void) const;
+	idFile* operator->(void);
+
+	//get the ptr forom the idFile
+	const idFile* GetInternalPtr(void) const;
+	idFile* GetInternalPtr(void);
+
+private:
+	idFile * m_fileHandler;
+};
+//Beato End
 
 
 #endif /* !__FILE_H__ */

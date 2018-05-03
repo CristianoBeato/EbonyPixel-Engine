@@ -34,14 +34,6 @@ If you have questions concerning this license or the applicable additional terms
 	Render Model
 ===============================================================================
 */
-
-// shared between the renderer, game, and Maya export DLL
-#define MD5_VERSION_STRING		"MD5Version"
-#define MD5_MESH_EXT			"md5mesh"
-#define MD5_ANIM_EXT			"md5anim"
-#define MD5_CAMERA_EXT			"md5camera"
-#define MD5_VERSION				10
-
 #include "renderer/jobs/ShadowShared.h"
 #include "renderer/jobs/PreLightShadowVolume.h"
 #include "renderer/jobs/StaticShadowVolume.h"
@@ -58,6 +50,17 @@ const int SHADOW_CAP_INFINITE	= 64;
 
 class idRenderModelStatic;
 struct viewDef_t;
+
+class btGameJoint
+{
+public:
+	btGameJoint(void)
+	{
+		parent = NULL;
+	}
+	idStr						name;
+	const btGameJoint* 			parent;
+};
 
 // our only drawing geometry type
 struct srfTriangles_t
@@ -142,21 +145,8 @@ enum jointHandle_t
 	INVALID_JOINT				= -1
 };
 
-class idMD5Joint
-{
-public:
-	idMD5Joint()
-	{
-		parent = NULL;
-	}
-	idStr						name;
-	const idMD5Joint* 			parent;
-};
-
-
 // the init methods may be called again on an already created model when
 // a reloadModels is issued
-
 class idRenderModel
 {
 public:
@@ -281,11 +271,13 @@ public:
 	// wasn't precached correctly.
 	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel ) = 0;
 	
-	// Returns the number of joints or 0 if the model is not an MD5
+	// Returns the number of joints or 0 if the model is not Skined
 	virtual int					NumJoints() const = 0;
-	
-	// Returns the MD5 joints or NULL if the model is not an MD5
-	virtual const idMD5Joint* 	GetJoints() const = 0;
+
+//Beato Begin
+	// Returns the joints or NULL if the model is not Skined
+	virtual const btGameJoint* 	GetJoints(void) const = 0;
+//Beato End
 	
 	// Returns the handle for the joint with the given name.
 	virtual jointHandle_t		GetJointHandle( const char* name ) const = 0;

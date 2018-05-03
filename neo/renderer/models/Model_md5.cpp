@@ -27,11 +27,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
+#include "Model_md5.h"
 #include "renderer/tr_local.h"
-#include "Model_local.h"
 
 #if defined(USE_INTRINSICS)
 static const __m128 vector_float_posInfinity		= { idMath::INFINITY, idMath::INFINITY, idMath::INFINITY, idMath::INFINITY };
@@ -887,7 +887,10 @@ void idRenderModelMD5::WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp ) c
 		int offset = -1;
 		if( joints[i].parent != NULL )
 		{
-			offset = joints[i].parent - joints.Ptr();
+//Beato Begin
+			//offset = joints[i].parent - joints.Ptr();
+			offset = joints[i].parent - (btGameJoint*)joints.Ptr();
+//Beato End
 		}
 		file->WriteBig( offset );
 	}
@@ -1050,7 +1053,7 @@ void idRenderModelMD5::LoadModel()
 		poseMat[ i ].SetTranslation( pose->t );
 		if( joint->parent )
 		{
-			parentNum = joint->parent - joints.Ptr();
+			parentNum = joint->parent - (btGameJoint*)joints.Ptr();
 			pose->q = ( poseMat[ i ].ToMat3() * poseMat[ parentNum ].ToMat3().Transpose() ).ToQuat();
 			pose->t = ( poseMat[ i ].ToVec3() - poseMat[ parentNum ].ToVec3() ) * poseMat[ parentNum ].ToMat3().Transpose();
 		}
@@ -1187,7 +1190,7 @@ void idRenderModelMD5::DrawJoints( const renderEntity_t* ent, const viewDef_t* v
 		pos = ent->origin + joint->ToVec3() * ent->axis;
 		if( md5Joint->parent )
 		{
-			parentNum = md5Joint->parent - joints.Ptr();
+			parentNum = md5Joint->parent - (btGameJoint*)joints.Ptr();
 			common->RW()->DebugLine( colorWhite, ent->origin + ent->joints[ parentNum ].ToVec3() * ent->axis, pos );
 		}
 		

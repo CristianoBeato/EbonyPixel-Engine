@@ -39,6 +39,10 @@ public:
 	//destructor 
 	~btSmartPtr(void);
 
+	//alloc array of elements
+	void	Alloc(uint32 num, const memTag_t tag);
+
+	//operators
 	T* operator = ( T* objptr);
 	T& operator *(void);
 	T* operator ->(void);
@@ -53,6 +57,18 @@ private:
 	T *m_ptr;
 };
 
+template<typename T>
+ID_INLINE T * btSmartPtr<T>::GetInternalPtr(void) const
+{
+	return m_ptr;
+}
+
+template<typename T>
+ID_INLINE void btSmartPtr<T>::Alloc(uint32 num, const memTag_t tag)
+{
+	m_ptr = (T*)Mem_Alloc(sizeof(T) * num, tag);
+}
+
 template <typename T>
 ID_INLINE btSmartPtr<T>::btSmartPtr(void) : m_ptr(NULL)
 {
@@ -66,7 +82,7 @@ ID_INLINE btSmartPtr<T>::btSmartPtr(T * ptr) : m_ptr(ptr)
 template <typename T>
 ID_INLINE btSmartPtr<T>::~btSmartPtr(void)
 {
-	delete m_ptr;
+	Mem_Free(m_ptr);
 }
 
 template<typename T>

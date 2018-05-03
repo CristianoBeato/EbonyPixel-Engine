@@ -30,9 +30,3 @@ GNU General Public License which accompanied the Elbony Pixel Source Code.
 #pragma hdrstop
 
 #include "SmartPtr.h"
-
-template<typename T>
-T * btSmartPtr<T>::GetInternalPtr(void) const
-{
-	return m_ptr;
-}
