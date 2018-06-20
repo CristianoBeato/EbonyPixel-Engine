@@ -40,36 +40,111 @@ If you have questions concerning this license or the applicable additional terms
 // mode parm for Seek
 typedef enum
 {
-	FS_SEEK_CUR,
+	FS_SEEK_CUR = 0,
 	FS_SEEK_END,
 	FS_SEEK_SET
 } fsOrigin_t;
 
 class idFileSystemLocal;
 
-
-class idFile
+//Beato Begin: 
+//abstract class tha implement byte swaping using SDL
+//for most easy 
+class btByteSwap
 {
 public:
-	virtual					~idFile() {};
+	virtual					~btByteSwap(void) {};
+
+	virtual int				Read(void* buffer, int len) = 0;
+	virtual int				Write(const void* buffer, int len) = 0;
+
+	// Endian portable alternatives to Read(...)
+	virtual int				ReadInt(int& value);
+	virtual int				ReadUnsignedInt(unsigned int& value);
+	virtual int				ReadShort(short& value);
+	virtual int				ReadUnsignedShort(unsigned short& value);
+	virtual int				ReadChar(char& value);
+	virtual int				ReadUnsignedChar(unsigned char& value);
+	virtual int				ReadFloat(float& value);
+	virtual int				ReadBool(bool& value);
+	virtual int				ReadString(idStr& string);
+	virtual int				ReadVec2(idVec2& vec);
+	virtual int				ReadVec3(idVec3& vec);
+	virtual int				ReadVec4(idVec4& vec);
+	virtual int				ReadVec6(idVec6& vec);
+	virtual int				ReadMat3(idMat3& mat);
+
+	// Endian portable alternatives to Write(...)
+	virtual int				WriteInt(const int value);
+	virtual int				WriteUnsignedInt(const unsigned int value);
+	virtual int				WriteShort(const short value);
+	virtual int				WriteUnsignedShort(unsigned short value);
+	virtual int				WriteChar(const char value);
+	virtual int				WriteUnsignedChar(const unsigned char value);
+	virtual int				WriteFloat(const float value);
+	virtual int				WriteBool(const bool value);
+	virtual int				WriteString(const char* string);
+	virtual int				WriteVec2(const idVec2& vec);
+	virtual int				WriteVec3(const idVec3& vec);
+	virtual int				WriteVec4(const idVec4& vec);
+	virtual int				WriteVec6(const idVec6& vec);
+	virtual int				WriteMat3(const idMat3& mat);
+
+	template<class type> ID_INLINE size_t ReadBig(type& c)
+	{
+		size_t r = Read(&c, sizeof(c));
+		idSwap::Big(c);
+		return r;
+	}
+
+	template<class type> ID_INLINE size_t ReadBigArray(type* c, int count)
+	{
+		size_t r = Read(c, sizeof(c[0]) * count);
+		idSwap::BigArray(c, count);
+		return r;
+	}
+
+	template<class type> ID_INLINE size_t WriteBig(const type& c)
+	{
+		type b = c;
+		idSwap::Big(b);
+		return Write(&b, sizeof(b));
+	}
+
+	template<class type> ID_INLINE size_t WriteBigArray(const type* c, int count)
+	{
+		size_t r = 0;
+		for (int i = 0; i < count; i++)
+		{
+			r += WriteBig(c[i]);
+		}
+		return r;
+	}
+};
+//Beato End
+
+class idFile : public btByteSwap
+{
+public:
+	virtual					~idFile(void) {};
 	// Get the name of the file.
-	virtual const char* 	GetName() const;
+	virtual const char* 	GetName(void) const;
 	// Get the full file path.
-	virtual const char* 	GetFullPath() const;
+	virtual const char* 	GetFullPath(void) const;
 	// Read data from the file to the buffer.
 	virtual int				Read( void* buffer, int len );
 	// Write data from the buffer to the file.
 	virtual int				Write( const void* buffer, int len );
 	// Returns the length of the file.
-	virtual int				Length() const;
+	virtual int				Length(void) const;
 	// Return a time value for reload operations.
-	virtual ID_TIME_T		Timestamp() const;
+	virtual ID_TIME_T		Timestamp(void) const;
 	// Returns offset in file.
-	virtual int				Tell() const;
+	virtual int				Tell(void) const;
 	// Forces flush on files being writting to.
-	virtual void			ForceFlush();
+	virtual void			ForceFlush(void);
 	// Causes any buffered data to be written to the file.
-	virtual void			Flush();
+	virtual void			Flush(void);
 	// Seek on a file.
 	virtual int				Seek( long offset, fsOrigin_t origin );
 	// Go back to the beginning of the file.
@@ -80,69 +155,7 @@ public:
 	virtual int				VPrintf( const char* fmt, va_list arg );
 	// Write a string with high precision floating point numbers to the file.
 	virtual int				WriteFloatString( VERIFY_FORMAT_STRING const char* fmt, ... );
-	
-	// Endian portable alternatives to Read(...)
-	virtual int				ReadInt( int& value );
-	virtual int				ReadUnsignedInt( unsigned int& value );
-	virtual int				ReadShort( short& value );
-	virtual int				ReadUnsignedShort( unsigned short& value );
-	virtual int				ReadChar( char& value );
-	virtual int				ReadUnsignedChar( unsigned char& value );
-	virtual int				ReadFloat( float& value );
-	virtual int				ReadBool( bool& value );
-	virtual int				ReadString( idStr& string );
-	virtual int				ReadVec2( idVec2& vec );
-	virtual int				ReadVec3( idVec3& vec );
-	virtual int				ReadVec4( idVec4& vec );
-	virtual int				ReadVec6( idVec6& vec );
-	virtual int				ReadMat3( idMat3& mat );
-	
-	// Endian portable alternatives to Write(...)
-	virtual int				WriteInt( const int value );
-	virtual int				WriteUnsignedInt( const unsigned int value );
-	virtual int				WriteShort( const short value );
-	virtual int				WriteUnsignedShort( unsigned short value );
-	virtual int				WriteChar( const char value );
-	virtual int				WriteUnsignedChar( const unsigned char value );
-	virtual int				WriteFloat( const float value );
-	virtual int				WriteBool( const bool value );
-	virtual int				WriteString( const char* string );
-	virtual int				WriteVec2( const idVec2& vec );
-	virtual int				WriteVec3( const idVec3& vec );
-	virtual int				WriteVec4( const idVec4& vec );
-	virtual int				WriteVec6( const idVec6& vec );
-	virtual int				WriteMat3( const idMat3& mat );
-	
-	template<class type> ID_INLINE size_t ReadBig( type& c )
-	{
-		size_t r = Read( &c, sizeof( c ) );
-		idSwap::Big( c );
-		return r;
-	}
-	
-	template<class type> ID_INLINE size_t ReadBigArray( type* c, int count )
-	{
-		size_t r = Read( c, sizeof( c[0] ) * count );
-		idSwap::BigArray( c, count );
-		return r;
-	}
-	
-	template<class type> ID_INLINE size_t WriteBig( const type& c )
-	{
-		type b = c;
-		idSwap::Big( b );
-		return Write( &b, sizeof( b ) );
-	}
-	
-	template<class type> ID_INLINE size_t WriteBigArray( const type* c, int count )
-	{
-		size_t r = 0;
-		for( int i = 0; i < count; i++ )
-		{
-			r += WriteBig( c[i] );
-		}
-		return r;
-	}
+
 };
 
 /*

@@ -157,6 +157,346 @@ int FS_WriteFloatString( char* buf, const char* fmt, va_list argPtr )
 
 /*
 =================================================================================
+btByteSwap
+=================================================================================
+*/
+
+/*
+=================
+idFile::ReadInt
+=================
+*/
+int btByteSwap::ReadInt(int& value)
+{
+	int result = Read(&value, sizeof(value));
+	value  = SDL_SwapLE32(value);
+	//value = LittleLong(value);
+	return result;
+}
+
+/*
+=================
+idFile::ReadUnsignedInt
+=================
+*/
+int btByteSwap::ReadUnsignedInt(unsigned int& value)
+{
+	int result = Read(&value, sizeof(value));
+	//value = LittleLong(value);
+	value = SDL_SwapLE32(value);
+	return result;
+}
+
+/*
+=================
+idFile::ReadShort
+=================
+*/
+int btByteSwap::ReadShort(short& value)
+{
+	int result = Read(&value, sizeof(value));
+	//value = LittleShort(value);
+	value = SDL_SwapLE16(value);
+	return result;
+}
+
+/*
+=================
+idFile::ReadUnsignedShort
+=================
+*/
+int btByteSwap::ReadUnsignedShort(unsigned short& value)
+{
+	int result = Read(&value, sizeof(value));
+	//value = LittleShort(value);
+	value = SDL_SwapLE16(value);
+	return result;
+}
+
+/*
+=================
+idFile::ReadChar
+=================
+*/
+int btByteSwap::ReadChar(char& value)
+{
+	return Read(&value, sizeof(value));
+}
+
+/*
+=================
+idFile::ReadUnsignedChar
+=================
+*/
+int btByteSwap::ReadUnsignedChar(unsigned char& value)
+{
+	return Read(&value, sizeof(value));
+}
+
+/*
+=================
+idFile::ReadFloat
+=================
+*/
+int btByteSwap::ReadFloat(float& value)
+{
+	int result = Read(&value, sizeof(value));
+	value = SDL_SwapFloatLE(value);
+	return result;
+}
+
+/*
+=================
+idFile::ReadBool
+=================
+*/
+int btByteSwap::ReadBool(bool& value)
+{
+	unsigned char c;
+	int result = ReadUnsignedChar(c);
+	value = c ? true : false;
+	return result;
+}
+
+/*
+=================
+idFile::ReadString
+=================
+*/
+int btByteSwap::ReadString(idStr& string)
+{
+	int len;
+	int result = 0;
+
+	ReadInt(len);
+	if (len >= 0)
+	{
+		string.Fill(' ', len);
+		result = Read(&string[0], len);
+	}
+	return result;
+}
+
+/*
+=================
+idFile::ReadVec2
+=================
+*/
+int btByteSwap::ReadVec2(idVec2& vec)
+{
+	int result = Read(&vec, sizeof(vec));
+	LittleRevBytes(&vec, sizeof(float), sizeof(vec) / sizeof(float));
+	return result;
+}
+
+/*
+=================
+idFile::ReadVec3
+=================
+*/
+int btByteSwap::ReadVec3(idVec3& vec)
+{
+	int result = Read(&vec, sizeof(vec));
+	LittleRevBytes(&vec, sizeof(float), sizeof(vec) / sizeof(float));
+	return result;
+}
+
+/*
+=================
+idFile::ReadVec4
+=================
+*/
+int btByteSwap::ReadVec4(idVec4& vec)
+{
+	int result = Read(&vec, sizeof(vec));
+	LittleRevBytes(&vec, sizeof(float), sizeof(vec) / sizeof(float));
+	return result;
+}
+
+/*
+=================
+idFile::ReadVec6
+=================
+*/
+int btByteSwap::ReadVec6(idVec6& vec)
+{
+	int result = Read(&vec, sizeof(vec));
+	LittleRevBytes(&vec, sizeof(float), sizeof(vec) / sizeof(float));
+	return result;
+}
+
+/*
+=================
+idFile::ReadMat3
+=================
+*/
+int btByteSwap::ReadMat3(idMat3& mat)
+{
+	int result = Read(&mat, sizeof(mat));
+	LittleRevBytes(&mat, sizeof(float), sizeof(mat) / sizeof(float));
+	return result;
+}
+
+/*
+=================
+idFile::WriteInt
+=================
+*/
+int btByteSwap::WriteInt(const int value)
+{
+	int v = LittleLong(value);
+	return Write(&v, sizeof(v));
+}
+
+/*
+=================
+idFile::WriteUnsignedInt
+=================
+*/
+int btByteSwap::WriteUnsignedInt(const unsigned int value)
+{
+	unsigned int v = LittleLong(value);
+	return Write(&v, sizeof(v));
+}
+
+/*
+=================
+idFile::WriteShort
+=================
+*/
+int btByteSwap::WriteShort(const short value)
+{
+	short v = LittleShort(value);
+	return Write(&v, sizeof(v));
+}
+
+/*
+=================
+idFile::WriteUnsignedShort
+=================
+*/
+int btByteSwap::WriteUnsignedShort(const unsigned short value)
+{
+	unsigned short v = LittleShort(value);
+	return Write(&v, sizeof(v));
+}
+
+/*
+=================
+idFile::WriteChar
+=================
+*/
+int btByteSwap::WriteChar(const char value)
+{
+	return Write(&value, sizeof(value));
+}
+
+/*
+=================
+idFile::WriteUnsignedChar
+=================
+*/
+int btByteSwap::WriteUnsignedChar(const unsigned char value)
+{
+	return Write(&value, sizeof(value));
+}
+
+/*
+=================
+idFile::WriteFloat
+=================
+*/
+int btByteSwap::WriteFloat(const float value)
+{
+	float v = LittleFloat(value);
+	return Write(&v, sizeof(v));
+}
+
+/*
+=================
+idFile::WriteBool
+=================
+*/
+int btByteSwap::WriteBool(const bool value)
+{
+	unsigned char c = value;
+	return WriteUnsignedChar(c);
+}
+
+/*
+=================
+idFile::WriteString
+=================
+*/
+int btByteSwap::WriteString(const char* value)
+{
+	int len = strlen(value);
+	WriteInt(len);
+	return Write(value, len);
+}
+
+/*
+=================
+idFile::WriteVec2
+=================
+*/
+int btByteSwap::WriteVec2(const idVec2& vec)
+{
+	idVec2 v = vec;
+	LittleRevBytes(&v, sizeof(float), sizeof(v) / sizeof(float));
+	return Write(&v, sizeof(v));
+}
+
+/*
+=================
+idFile::WriteVec3
+=================
+*/
+int btByteSwap::WriteVec3(const idVec3& vec)
+{
+	idVec3 v = vec;
+	LittleRevBytes(&v, sizeof(float), sizeof(v) / sizeof(float));
+	return Write(&v, sizeof(v));
+}
+
+/*
+=================
+idFile::WriteVec4
+=================
+*/
+int btByteSwap::WriteVec4(const idVec4& vec)
+{
+	idVec4 v = vec;
+	LittleRevBytes(&v, sizeof(float), sizeof(v) / sizeof(float));
+	return Write(&v, sizeof(v));
+}
+
+/*
+=================
+idFile::WriteVec6
+=================
+*/
+int btByteSwap::WriteVec6(const idVec6& vec)
+{
+	idVec6 v = vec;
+	LittleRevBytes(&v, sizeof(float), sizeof(v) / sizeof(float));
+	return Write(&v, sizeof(v));
+}
+
+/*
+=================
+idFile::WriteMat3
+=================
+*/
+int btByteSwap::WriteMat3(const idMat3& mat)
+{
+	idMat3 v = mat;
+	LittleRevBytes(&v, sizeof(float), sizeof(v) / sizeof(float));
+	return Write(&v, sizeof(v));
+}
+
+/*
+=================================================================================
 
 idFile
 
@@ -325,336 +665,6 @@ int idFile::WriteFloatString( const char* fmt, ... )
 	va_end( argPtr );
 	
 	return Write( buf, len );
-}
-
-/*
- =================
- idFile::ReadInt
- =================
- */
-int idFile::ReadInt( int& value )
-{
-	int result = Read( &value, sizeof( value ) );
-	value = LittleLong( value );
-	return result;
-}
-
-/*
- =================
- idFile::ReadUnsignedInt
- =================
- */
-int idFile::ReadUnsignedInt( unsigned int& value )
-{
-	int result = Read( &value, sizeof( value ) );
-	value = LittleLong( value );
-	return result;
-}
-
-/*
- =================
- idFile::ReadShort
- =================
- */
-int idFile::ReadShort( short& value )
-{
-	int result = Read( &value, sizeof( value ) );
-	value = LittleShort( value );
-	return result;
-}
-
-/*
- =================
- idFile::ReadUnsignedShort
- =================
- */
-int idFile::ReadUnsignedShort( unsigned short& value )
-{
-	int result = Read( &value, sizeof( value ) );
-	value = LittleShort( value );
-	return result;
-}
-
-/*
- =================
- idFile::ReadChar
- =================
- */
-int idFile::ReadChar( char& value )
-{
-	return Read( &value, sizeof( value ) );
-}
-
-/*
- =================
- idFile::ReadUnsignedChar
- =================
- */
-int idFile::ReadUnsignedChar( unsigned char& value )
-{
-	return Read( &value, sizeof( value ) );
-}
-
-/*
- =================
- idFile::ReadFloat
- =================
- */
-int idFile::ReadFloat( float& value )
-{
-	int result = Read( &value, sizeof( value ) );
-	value = LittleFloat( value );
-	return result;
-}
-
-/*
- =================
- idFile::ReadBool
- =================
- */
-int idFile::ReadBool( bool& value )
-{
-	unsigned char c;
-	int result = ReadUnsignedChar( c );
-	value = c ? true : false;
-	return result;
-}
-
-/*
- =================
- idFile::ReadString
- =================
- */
-int idFile::ReadString( idStr& string )
-{
-	int len;
-	int result = 0;
-	
-	ReadInt( len );
-	if( len >= 0 )
-	{
-		string.Fill( ' ', len );
-		result = Read( &string[ 0 ], len );
-	}
-	return result;
-}
-
-/*
- =================
- idFile::ReadVec2
- =================
- */
-int idFile::ReadVec2( idVec2& vec )
-{
-	int result = Read( &vec, sizeof( vec ) );
-	LittleRevBytes( &vec, sizeof( float ), sizeof( vec ) / sizeof( float ) );
-	return result;
-}
-
-/*
- =================
- idFile::ReadVec3
- =================
- */
-int idFile::ReadVec3( idVec3& vec )
-{
-	int result = Read( &vec, sizeof( vec ) );
-	LittleRevBytes( &vec, sizeof( float ), sizeof( vec ) / sizeof( float ) );
-	return result;
-}
-
-/*
- =================
- idFile::ReadVec4
- =================
- */
-int idFile::ReadVec4( idVec4& vec )
-{
-	int result = Read( &vec, sizeof( vec ) );
-	LittleRevBytes( &vec, sizeof( float ), sizeof( vec ) / sizeof( float ) );
-	return result;
-}
-
-/*
- =================
- idFile::ReadVec6
- =================
- */
-int idFile::ReadVec6( idVec6& vec )
-{
-	int result = Read( &vec, sizeof( vec ) );
-	LittleRevBytes( &vec, sizeof( float ), sizeof( vec ) / sizeof( float ) );
-	return result;
-}
-
-/*
- =================
- idFile::ReadMat3
- =================
- */
-int idFile::ReadMat3( idMat3& mat )
-{
-	int result = Read( &mat, sizeof( mat ) );
-	LittleRevBytes( &mat, sizeof( float ), sizeof( mat ) / sizeof( float ) );
-	return result;
-}
-
-/*
- =================
- idFile::WriteInt
- =================
- */
-int idFile::WriteInt( const int value )
-{
-	int v = LittleLong( value );
-	return Write( &v, sizeof( v ) );
-}
-
-/*
- =================
- idFile::WriteUnsignedInt
- =================
- */
-int idFile::WriteUnsignedInt( const unsigned int value )
-{
-	unsigned int v = LittleLong( value );
-	return Write( &v, sizeof( v ) );
-}
-
-/*
- =================
- idFile::WriteShort
- =================
- */
-int idFile::WriteShort( const short value )
-{
-	short v = LittleShort( value );
-	return Write( &v, sizeof( v ) );
-}
-
-/*
- =================
- idFile::WriteUnsignedShort
- =================
- */
-int idFile::WriteUnsignedShort( const unsigned short value )
-{
-	unsigned short v = LittleShort( value );
-	return Write( &v, sizeof( v ) );
-}
-
-/*
- =================
- idFile::WriteChar
- =================
- */
-int idFile::WriteChar( const char value )
-{
-	return Write( &value, sizeof( value ) );
-}
-
-/*
- =================
- idFile::WriteUnsignedChar
- =================
- */
-int idFile::WriteUnsignedChar( const unsigned char value )
-{
-	return Write( &value, sizeof( value ) );
-}
-
-/*
- =================
- idFile::WriteFloat
- =================
- */
-int idFile::WriteFloat( const float value )
-{
-	float v = LittleFloat( value );
-	return Write( &v, sizeof( v ) );
-}
-
-/*
- =================
- idFile::WriteBool
- =================
- */
-int idFile::WriteBool( const bool value )
-{
-	unsigned char c = value;
-	return WriteUnsignedChar( c );
-}
-
-/*
- =================
- idFile::WriteString
- =================
- */
-int idFile::WriteString( const char* value )
-{
-	int len = strlen( value );
-	WriteInt( len );
-	return Write( value, len );
-}
-
-/*
- =================
- idFile::WriteVec2
- =================
- */
-int idFile::WriteVec2( const idVec2& vec )
-{
-	idVec2 v = vec;
-	LittleRevBytes( &v, sizeof( float ), sizeof( v ) / sizeof( float ) );
-	return Write( &v, sizeof( v ) );
-}
-
-/*
- =================
- idFile::WriteVec3
- =================
- */
-int idFile::WriteVec3( const idVec3& vec )
-{
-	idVec3 v = vec;
-	LittleRevBytes( &v, sizeof( float ), sizeof( v ) / sizeof( float ) );
-	return Write( &v, sizeof( v ) );
-}
-
-/*
- =================
- idFile::WriteVec4
- =================
- */
-int idFile::WriteVec4( const idVec4& vec )
-{
-	idVec4 v = vec;
-	LittleRevBytes( &v, sizeof( float ), sizeof( v ) / sizeof( float ) );
-	return Write( &v, sizeof( v ) );
-}
-
-/*
- =================
- idFile::WriteVec6
- =================
- */
-int idFile::WriteVec6( const idVec6& vec )
-{
-	idVec6 v = vec;
-	LittleRevBytes( &v, sizeof( float ), sizeof( v ) / sizeof( float ) );
-	return Write( &v, sizeof( v ) );
-}
-
-/*
- =================
- idFile::WriteMat3
- =================
- */
-int idFile::WriteMat3( const idMat3& mat )
-{
-	idMat3 v = mat;
-	LittleRevBytes( &v, sizeof( float ), sizeof( v ) / sizeof( float ) );
-	return Write( &v, sizeof( v ) );
 }
 
 /*

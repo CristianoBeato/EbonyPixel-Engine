@@ -295,42 +295,12 @@ void idLib::PrintfIf( const bool test, const char* fmt, ... )
 */
 
 // can't just use function pointers, or dll linkage can mess up
-static short( *_BigShort )( short l );
-static short( *_LittleShort )( short l );
-static int	( *_BigLong )( int l );
-static int	( *_LittleLong )( int l );
-static float( *_BigFloat )( float l );
-static float( *_LittleFloat )( float l );
 static void	( *_BigRevBytes )( void* bp, int elsize, int elcount );
 static void	( *_LittleRevBytes )( void* bp, int elsize, int elcount );
 static void ( *_LittleBitField )( void* bp, int elsize );
 static void	( *_SixtetsForInt )( byte* out, int src );
 static int	( *_IntForSixtets )( byte* in );
 
-short	BigShort( short l )
-{
-	return _BigShort( l );
-}
-short	LittleShort( short l )
-{
-	return _LittleShort( l );
-}
-int		BigLong( int l )
-{
-	return _BigLong( l );
-}
-int		LittleLong( int l )
-{
-	return _LittleLong( l );
-}
-float	BigFloat( float l )
-{
-	return _BigFloat( l );
-}
-float	LittleFloat( float l )
-{
-	return _LittleFloat( l );
-}
 void	BigRevBytes( void* bp, int elsize, int elcount )
 {
 	_BigRevBytes( bp, elsize, elcount );
@@ -617,12 +587,6 @@ void Swap_Init()
 	if( *( short* )swaptest == 1 )
 	{
 		// little endian ex: x86
-		_BigShort = ShortSwap;
-		_LittleShort = ShortNoSwap;
-		_BigLong = LongSwap;
-		_LittleLong = LongNoSwap;
-		_BigFloat = FloatSwap;
-		_LittleFloat = FloatNoSwap;
 		_BigRevBytes = RevBytesSwap;
 		_LittleRevBytes = RevBytesNoSwap;
 		_LittleBitField = RevBitFieldNoSwap;
@@ -632,12 +596,6 @@ void Swap_Init()
 	else
 	{
 		// big endian ex: ppc
-		_BigShort = ShortNoSwap;
-		_LittleShort = ShortSwap;
-		_BigLong = LongNoSwap;
-		_LittleLong = LongSwap;
-		_BigFloat = FloatNoSwap;
-		_LittleFloat = FloatSwap;
 		_BigRevBytes = RevBytesNoSwap;
 		_LittleRevBytes = RevBytesSwap;
 		_LittleBitField = RevBitFieldSwap;

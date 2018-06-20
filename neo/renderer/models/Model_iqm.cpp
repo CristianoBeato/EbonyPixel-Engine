@@ -41,11 +41,21 @@ idRenderModelIQM::~idRenderModelIQM(void)
 
 void idRenderModelIQM::InitFromFile(const char * fileName)
 {
-	int			size;
-	iqmheader	Header;
-	uint32		numjoints = 0;
-	size_t		jointsBuffLen = 0;
-	btSmartPtr<iqmjoint> joints;
+	int							size;
+	iqmheader					Header;
+	uint32						numjoints = 0, numMeshes = 0;
+	size_t						jointsBuffLen = 0;
+	btSmartPtr<iqmjoint>		joints;
+	btSmartPtr<iqmmesh>			meshes;
+	btSmartPtr<iqmvertexarray>	vas;
+
+	//Vertexes arrays
+	btSmartPtr<float>	vpos;
+	btSmartPtr<float>	vtc;
+	btSmartPtr<float>	vnorm;
+	btSmartPtr<float>	vtan;
+	btSmartPtr<byte>	vindex;
+	btSmartPtr<byte>	vweight;
 
 	//store path for debug
 	m_modelPath = fileName;
@@ -71,34 +81,21 @@ void idRenderModelIQM::InitFromFile(const char * fileName)
 	//srcFile->ReadBig<iqmheader>(Header);
  	srcFile->Read(&Header, sizeof(iqmheader));
 
-
-	//check for a valid IQM model
-	if (stricmp(Header.magic, IQM_MAGIC) != 0 || Header.version != IQM_VERSION )
-	{
-		MakeDefaultModel();
-		return;
-	}
-
+	//check for a valid IQM model and 
 	//sanity check... don't load files bigger than 16 MB
-	if (Header.filesize > (16 << 20) || Header.num_meshes <= 0)
+	if (stricmp(Header.magic, IQM_MAGIC) != 0 || Header.version != IQM_VERSION 
+		|| Header.filesize > (16 << 20) || Header.num_meshes <= 0
+		)
 	{
 		MakeDefaultModel();
 		return;
 	}
 
-	//Create the text buffer
-#if 1
-	srcFile->Seek(sizeof(iqmheader), FS_SEEK_SET);
-	//TODO: find a better way
-	byte * buf = (byte*)Mem_Alloc(Header.filesize, TAG_MODEL);
-	srcFile->Read(buf, Header.filesize);
-	const char *texts = Header.ofs_text ? (char *)&buf[Header.ofs_text] : "";
-	Mem_Free(buf);
-#else
-	srcFile->Seek(Header.ofs_text, FS_SEEK_SET);
-	char *texts = "";
-	srcFile->Read(texts, Header.num_text);
-#endif
+#if 0
+
+
+
+#else //this can be a better way, but we have problem whit text
 
 	//load model Joints
 	numjoints = Header.num_joints;
@@ -106,16 +103,15 @@ void idRenderModelIQM::InitFromFile(const char * fileName)
 	//Set skeleton 
 	m_joints.SetGranularity(1);
 	m_joints.SetNum(numjoints);
-	jointsBuffLen = sizeof(iqmjoint) * numjoints;
 
 	//reserve memory for the joints
 	joints.Alloc(numjoints, TAG_MODEL);
 
 	//read joins 
 	srcFile->Seek(Header.ofs_joints, FS_SEEK_SET);// move file carret to the joits buffer ofest
-	srcFile->Read(joints.GetInternalPtr(), jointsBuffLen);
+	srcFile->Read(joints.GetInternalPtr(), sizeof(iqmjoint) * numjoints);
 
-	for (int i = 0; i < numjoints; i++)
+	for (uint32 i = 0; i < numjoints; i++)
 	{
 		iqmjoint &j = joints.GetInternalPtr()[i];
 		//set the bone name
@@ -136,6 +132,7 @@ void idRenderModelIQM::InitFromFile(const char * fileName)
 	if (Header.num_triangles < 0)
 	{
 		common->Error("idRenderModelIQM::InitFromFile(%s), invalid tris number", fileName);
+		common->Printf()
 		MakeDefaultModel();
 		return;
 	}
@@ -152,6 +149,108 @@ void idRenderModelIQM::InitFromFile(const char * fileName)
 		srcFile->ReadInt(tris[i * 3 + 2]);
 	}
 
+	//Load vertices
+	srcFile->Seek(Header.ofs_vertexarrays, FS_SEEK_SET);
+	vas.Alloc(Header.num_vertexarrays, TAG_MODEL);
+	srcFile->Read(vas.GetInternalPtr(), sizeof(iqmvertexarray) * Header.num_vertexarrays);
+	for (uint32 i = 0; i < Header.num_vertexarrays; i++)
+	{
+		iqmvertexarray &va = vas.GetInternalPtr()[i];
+		switch (va.type)
+		{
+		case IQM_POSITION: 
+		{
+			if (va.format != IQM_FLOAT || va.size != 3)
+			{
+				//TODO: raise a error
+				break;
+			}
+
+			vpos.Alloc(Header.num_vertexes * 3, TAG_MODEL);
+			srcFile->Seek(va.offset, FS_SEEK_SET);
+			srcFile->Read(vpos.GetInternalPtr(), (sizeof(float) * 3)* Header.num_vertexes);
+			break;
+		}
+		case IQM_NORMAL:
+		{
+			if (va.format != IQM_FLOAT || va.size != 3)
+			{
+				//TODO: raise a error
+				break;
+			}
+			vnorm.Alloc(Header.num_vertexes * 3, TAG_MODEL);
+			srcFile->Seek(va.offset, FS_SEEK_SET);
+			srcFile->Read(vnorm.GetInternalPtr(), (sizeof(float) * 3)* Header.num_vertexes);
+			break;
+		}
+		case IQM_TANGENT:
+		{
+			if (va.format != IQM_FLOAT || va.size != 4)
+			{
+				//TODO: raise a error
+				break;
+			}
+			vtan.Alloc(Header.num_vertexes * 4, TAG_MODEL);
+			srcFile->Seek(va.offset, FS_SEEK_SET);
+			srcFile->Read(vtan.GetInternalPtr(), (sizeof(float) * 4)* Header.num_vertexes);
+
+			break;
+		}
+		case IQM_TEXCOORD: 
+		{
+			if (va.format != IQM_FLOAT || va.size != 2)
+			{
+				//TODO: raise a error
+				break;
+			}
+			vtc.Alloc(Header.num_vertexes * 2, TAG_MODEL);
+			srcFile->Seek(va.offset, FS_SEEK_SET);
+			srcFile->Read(vtc.GetInternalPtr(), (sizeof(float) * 2)* Header.num_vertexes);
+			break;
+		}
+		case IQM_BLENDINDEXES:
+		{
+			if (va.format != IQM_UBYTE || va.size != 4)
+			{
+				//TODO: raise a error
+				break;
+			}
+			vindex.Alloc(Header.num_vertexes * 4, TAG_MODEL);
+			srcFile->Seek(va.offset, FS_SEEK_SET);
+			srcFile->Read(vindex.GetInternalPtr(), (sizeof(byte) * 4)* Header.num_vertexes);
+			break;
+		}
+		case IQM_BLENDWEIGHTS: 
+		{
+			if (va.format != IQM_UBYTE || va.size != 4)
+			{
+				//TODO: raise a error
+				break;
+			}
+			vweight.Alloc(Header.num_vertexes * 4, TAG_MODEL);
+			srcFile->Seek(va.offset, FS_SEEK_SET);
+			srcFile->Read(vweight.GetInternalPtr(), (sizeof(byte) * 4)* Header.num_vertexes);
+			break;
+		}
+		}
+	}
+
+	//Set meshes 
+	m_meshes.SetGranularity(1);
+	m_meshes.SetNum(numMeshes);
+
+	//reserve memory for the joints
+	meshes.Alloc(numMeshes, TAG_MODEL);
+
+	//read joins 
+	srcFile->Seek(Header.ofs_meshes, FS_SEEK_SET);// move file carret to the joits buffer ofest
+	srcFile->Read(meshes.GetInternalPtr(), sizeof(iqmmesh) * numMeshes);
+	for (uint32 i = 0; i < numMeshes; i++)
+	{
+		iqmmesh &m = meshes.GetInternalPtr()[i];
+
+	}
+#endif
 }
 
 dynamicModel_t idRenderModelIQM::IsDynamicModel(void) const

@@ -153,7 +153,7 @@ const char * btFileSysCommon::Sys_Cwd(void)
 
 sysFolder_t btFileSysCommon::IsFolder(const char * path)
 {
-//Stupid Microsoft, for what ?
+//Stupid Microsoft, for what use "_" prefix ?
 #ifdef _WIN32
 	struct _stat buffer;
 	if (_stat(path, &buffer) < 0)

@@ -160,6 +160,15 @@ private:
 
 };
 
+class btIqmMesh
+{
+public:
+	btIqmMesh(void) {};
+	~btIqmMesh(void) {};
+private:
+
+};
+
 class btIqmJoint : public btGameJoint
 {
 public:
