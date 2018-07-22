@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2017-2018 Cristiano Beato
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -30,7 +31,6 @@ If you have questions concerning this license or the applicable additional terms
 #define __LIST_H__
 
 #include <new>
-
 /*
 ===============================================================================
 
@@ -39,6 +39,224 @@ If you have questions concerning this license or the applicable additional terms
 
 ===============================================================================
 */
+
+//Beato Begin
+// forward declaration
+template< typename _type_, memTag_t _tag_ = TAG_IDLIB_LIST >
+class idList;
+
+//List C Iterator Interface
+template< typename _type_>
+struct btListIterator
+{
+public:
+	btListIterator(void) : m_listRef(nullptr), m_listOffset(0) {};
+	btListIterator(idList<_type_> *listRef, unsigned int listOffset = 0);
+	
+	_type_ &operator* (void) const;
+	_type_ *operator->(void) const;
+
+	//
+	_type_ &operator=(const _type_ &ref);
+
+	//increment counter
+	btListIterator &operator++(void);
+	btListIterator  operator++(int);
+
+	//decrement counter
+	btListIterator &operator--(void);
+	btListIterator  operator--(int);
+
+	//compare operators	
+	bool operator==(const btListIterator &rhs) const;
+	bool operator!=(const btListIterator &rhs) const;
+
+	// cast
+	template <typename U> ID_INLINE U* DynamicCast(void) const
+	{
+		return dynamic_cast<U*>(&m_listRef->getAt(m_listOffset));
+	}
+
+private:
+	// list needs to access private data members
+	friend class idList<_type_>;
+	unsigned int m_listOffset;
+	idList<_type_> *m_listRef;
+};
+
+template<typename _type_>
+ID_INLINE btListIterator<_type_>::btListIterator(idList<_type_>* listRef, unsigned int listOffset):
+	m_listRef(listRef),
+	m_listOffset(listOffset)
+{
+}
+
+template<typename _type_>
+ID_INLINE _type_ & btListIterator<_type_>::operator*(void) const
+{
+	return m_listRef->getAt(m_listOffset);
+}
+
+template<typename _type_>
+ID_INLINE _type_ * btListIterator<_type_>::operator->(void) const
+{
+	return &m_listRef->getAt(m_listOffset);
+}
+
+template<typename _type_>
+ID_INLINE _type_ & btListIterator<_type_>::operator=(const _type_ &ref)
+{
+	m_listRef->getAt(m_listOffset) = ref;
+	return m_listRef->getAt(m_listOffset);
+}
+
+template<typename _type_>
+ID_INLINE btListIterator<_type_> & btListIterator<_type_>::operator++(void)
+{
+	m_listOffset++;
+	return *this;
+}
+
+template<typename _type_>
+ID_INLINE btListIterator<_type_> & btListIterator<_type_>::operator--(void)
+{
+	m_listOffset--;
+	return *this;
+}
+
+template<typename _type_>
+ID_INLINE btListIterator<_type_> btListIterator<_type_>::operator++(int)
+{
+	btListIterator<_type_> copy = *this;
+	++*this;
+	return copy;
+}
+
+template<typename _type_>
+ID_INLINE btListIterator<_type_> btListIterator<_type_>::operator--(int)
+{
+	btListIterator<_type_> copy = *this;
+	--*this;
+	return copy;
+}
+
+template<typename _type_>
+ID_INLINE bool btListIterator<_type_>::operator==(const btListIterator & rhs) const
+{
+	//compare the list elements at given position
+	//return *m_listRef[m_listOffset] == rhs.m_listRef->getAt(m_listOffset);
+	
+	//compare the indexes of the elements in list
+	return m_listOffset == rhs.m_listOffset; // compare the current index, whit the given
+}
+
+template<typename _type_>
+ID_INLINE bool btListIterator<_type_>::operator!=(const btListIterator & rhs) const
+{
+	return !operator==(rhs);
+}
+
+//Const List C Iterator Interface
+template< typename _type_>
+struct btConstListIterator
+{
+public:
+	btConstListIterator(const idList<const _type_> *listRef, unsigned int listOffset = 0);
+
+	const _type_ &operator* (void) const;
+	const _type_ *operator->(void) const;
+
+	//
+	const _type_			&operator=(const _type_ &ref);
+
+	//increment counter
+	btConstListIterator		&operator++(void);
+	btConstListIterator		operator++(int);
+
+	//decrement counter
+	btConstListIterator		&operator--(void);
+	btConstListIterator		operator--(int);
+
+	//compare operators	
+	bool operator==(const btConstListIterator &rhs) const;
+	bool operator!=(const btConstListIterator &rhs) const;
+
+private:
+	// list needs to access private data members
+	friend class idList<_type_>;
+	unsigned int m_listOffset;
+	const idList<const _type_> *m_listRef;
+};
+
+template<typename _type_>
+ID_INLINE btConstListIterator<_type_>::btConstListIterator(const idList<const _type_>* listRef, unsigned int listOffset) :
+	m_listRef(listRef),
+	m_listOffset(listOffset)
+{
+}
+
+template<typename _type_>
+ID_INLINE const _type_ & btConstListIterator<_type_>::operator*(void) const
+{
+	return m_listRef->getAt(m_listOffset);
+}
+
+template<typename _type_>
+ID_INLINE const _type_ * btConstListIterator<_type_>::operator->(void) const
+{
+	return &m_listRef->getAt(m_listOffset);
+}
+
+template<typename _type_>
+ID_INLINE const _type_ & btConstListIterator<_type_>::operator=(const _type_ & ref)
+{
+	m_listRef->getAt(m_listOffset) = ref;
+	return m_listRef->getAt(m_listOffset);
+}
+
+template<typename _type_>
+ID_INLINE btConstListIterator<_type_> & btConstListIterator<_type_>::operator++(void)
+{
+	m_listOffset++;
+	return *this;
+}
+
+template<typename _type_>
+ID_INLINE btConstListIterator<_type_> btConstListIterator<_type_>::operator++(int)
+{
+	btConstListIterator<_type_> copy = *this;
+	++*this;
+	return copy;
+}
+
+template<typename _type_>
+ID_INLINE btConstListIterator<_type_> & btConstListIterator<_type_>::operator--(void)
+{
+	m_listOffset--;
+	return *this;
+}
+
+template<typename _type_>
+ID_INLINE btConstListIterator<_type_> btConstListIterator<_type_>::operator--(int)
+{
+	btConstListIterator<_type_> copy = *this;
+	--*this;
+	return copy;
+}
+
+template<typename _type_>
+ID_INLINE bool btConstListIterator<_type_>::operator==(const btConstListIterator & rhs) const
+{
+	//compare the indexes of the elements in list
+	return m_listOffset == rhs.m_listOffset; // compare the current index, whit the given
+}
+
+template<typename _type_>
+ID_INLINE bool btConstListIterator<_type_>::operator!=(const btConstListIterator & rhs) const
+{
+	return !operator==(rhs);
+}
+//Beato End
 
 /*
 ========================
@@ -118,6 +336,10 @@ template< typename _type_, memTag_t _tag_ = TAG_IDLIB_LIST >
 class idList
 {
 public:
+//Beato Begins: STL-compatible iterator typedefs
+	typedef btListIterator<_type_> iterator;
+	typedef btConstListIterator<const _type_> const_iterator;
+//Beato End
 
 	typedef int		cmp_t( const _type_*, const _type_* );
 	typedef _type_	new_t();
@@ -169,6 +391,12 @@ public:
 	void			Swap( idList& other );								// swap the contents of the lists
 	void			DeleteContents( bool clear = true );				// delete the contents of the list
 	
+//Beato Begin
+	//get object at gived position
+	const _type_& 	getAt(int index) const;
+	_type_& 		getAt(int index);
+//Beato End
+
 	//------------------------
 	// auto-cast to other idList types with a different memory tag
 	//------------------------
@@ -200,7 +428,46 @@ public:
 		memTag = ( byte )tag_;
 	};
 	
+//Beato Begins: STL-compatible range methods
+	iterator		begin(void) 
+	{ 
+		return iterator(this, 0);
+	};
+
+	iterator		end(void)
+	{
+		//return the index of the last element id
+		return iterator(this, this->NumAllocated() - 1); 
+	};
+
+	const_iterator	begin(void) const
+	{
+		const idList<const _type_> *copy = (idList<const _type_>*)this;
+		return const_iterator(copy, 0);
+	};
+
+	const_iterator	end(void) const
+	{
+		const idList<const _type_> *copy = (idList<const _type_>*)this;
+		return const_iterator(copy, this->NumAllocated() - 1);
+	};
+
+	const_iterator	cbegin(void) const
+	{
+		const idList<const _type_> *copy = (idList<const _type_>*)this;
+		return const_iterator(copy, 0);
+	};
+
+	const_iterator	cend(void) const
+	{
+		const idList<const _type_> *copy = (idList<const _type_>*)this;
+		return const_iterator(copy, this->NumAllocated() - 1);
+	};
 private:
+	// these classes need to access private data members
+	friend struct btListIterator<_type_>;
+//Beato End
+
 	int				num;
 	int				size;
 	int				granularity;
@@ -300,6 +567,67 @@ ID_INLINE void idList<_type_, _tag_>::DeleteContents( bool clear )
 	}
 }
 
+//Beato Begin
+template<typename _type_, memTag_t _tag_>
+ID_INLINE const _type_ & idList<_type_, _tag_>::getAt(int index) const
+{
+	assert(index >= 0);
+	assert(index < num);
+
+	//get objeck in the list
+	return list[index];
+}
+
+template<typename _type_, memTag_t _tag_>
+ID_INLINE _type_ & idList<_type_, _tag_>::getAt(int index)
+{
+	assert(index >= 0);
+	assert(index < num);
+
+	//get objeck in the list
+	return list[index];
+}
+
+/*
+template<typename _type_, memTag_t _tag_>
+ID_INLINE idList<_type_, _tag_>::iterator idList<_type_, _tag_>::begin(void)
+{
+	return iterator(this, 0);
+}
+
+template<typename _type_, memTag_t _tag_>
+ID_INLINE idList<_type_, _tag_>::iterator idList<_type_, _tag_>::end(void)
+{
+	//return the index of the last element id
+	return iterator(this, this->NumAllocated() - 1);
+}
+
+template<typename _type_, memTag_t _tag_>
+ID_INLINE idList<_type_, _tag_>::const_iterator idList<_type_, _tag_>::begin(void) const
+{
+	return const_iterator(this, 0);
+}
+
+template<typename _type_, memTag_t _tag_>
+ID_INLINE idList<_type_, _tag_>::const_iterator idList<_type_, _tag_>::end(void) const
+{
+	return const_iterator(this, this->NumAllocated() - 1);
+}
+
+template<typename _type_, memTag_t _tag_>
+ID_INLINE idList<_type_, _tag_>::const_iterator idList<_type_, _tag_>::cbegin(void) const
+{
+	return const_iterator(this, 0);
+}
+
+template<typename _type_, memTag_t _tag_>
+ID_INLINE idList<_type_, _tag_>::const_iterator idList<_type_, _tag_>::cend(void) const
+{
+	return const_iterator(this, this->NumAllocated() - 1);
+}
+*/
+//Beato End
+
 /*
 ================
 idList<_type_,_tag_>::Allocated
@@ -374,9 +702,8 @@ ID_INLINE void idList<_type_, _tag_>::SetNum( int newnum )
 {
 	assert( newnum >= 0 );
 	if( newnum > size )
-	{
 		Resize( newnum );
-	}
+
 	num = newnum;
 }
 
@@ -401,9 +728,7 @@ ID_INLINE void idList<_type_, _tag_>::SetGranularity( int newgranularity )
 		newsize = num + granularity - 1;
 		newsize -= newsize % granularity;
 		if( newsize != size )
-		{
 			Resize( newsize );
-		}
 	}
 }
 
@@ -463,18 +788,14 @@ ID_INLINE void idList<_type_, _tag_>::Resize( int newsize )
 		return;
 	}
 	
+	// not changing the size, so just exit
 	if( newsize == size )
-	{
-		// not changing the size, so just exit
 		return;
-	}
 	
 	list = ( _type_* )idListArrayResize< _type_, _tag_ >( list, size, newsize, false );
 	size = newsize;
 	if( size < num )
-	{
 		num = size;
-	}
 }
 
 /*
@@ -1150,4 +1471,4 @@ _type_* FindFromGenericPtr( idList<_type_, _tag_>& list, const _compare_type_ & 
 	return NULL;
 }
 
-#endif /* !__LIST_H__ */
+#endif //!__LIST_H__
