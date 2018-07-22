@@ -65,9 +65,9 @@ usercmd_t::ByteSwap
 */
 void usercmd_t::ByteSwap()
 {
-	angles[0] = LittleShort( angles[0] );
-	angles[1] = LittleShort( angles[1] );
-	angles[2] = LittleShort( angles[2] );
+	angles[0] = btByteSwap::LittleShort( angles[0] );
+	angles[1] = btByteSwap::LittleShort( angles[1] );
+	angles[2] = btByteSwap::LittleShort( angles[2] );
 }
 
 /*

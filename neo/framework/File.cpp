@@ -155,22 +155,220 @@ int FS_WriteFloatString( char* buf, const char* fmt, va_list argPtr )
 	// DG end
 }
 
+
 /*
-=================================================================================
-btByteSwap
-=================================================================================
+===============================================================================
+
+Byte order functions
+
+===============================================================================
 */
+short btByteSwap::BigShort(short l)
+{
+	return SDL_SwapBE16(l);
+}
+
+short btByteSwap::LittleShort(short l)
+{
+	return SDL_SwapLE16(l);
+}
+
+int btByteSwap::BigLong(int l)
+{
+	return SDL_SwapBE32(l);
+}
+
+int btByteSwap::LittleLong(int l)
+{
+	return SDL_SwapLE32(l);
+}
+
+float btByteSwap::BigFloat(float l)
+{
+	return SDL_SwapFloatBE(l);
+}
+
+float btByteSwap::LittleFloat(float l)
+{
+	return SDL_SwapFloatLE(l);
+}
+
+void btByteSwap::BigRevBytes(void * bp, int elsize, int elcount)
+{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+	RevBytesSwap(bp, elsize, elcount);
+#endif
+}
+
+void btByteSwap::LittleRevBytes(void * bp, int elsize, int elcount)
+{
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+	RevBytesSwap(bp, elsize, elcount);
+#endif
+}
+
+/*
+=====================================================================
+RevBytesSwap
+
+Reverses byte order in place, then reverses bits in those bytes
+
+INPUTS
+bp       bitfield structure to reverse
+elsize   size of the underlying data type
+
+RESULTS
+Reverses the bitfield of size elsize.
+===================================================================== 
+*/
+void  btByteSwap::RevBitFieldSwap(void* bp, int elsize)
+{
+	int i;
+	unsigned char* p, t, v;
+
+	LittleRevBytes(bp, elsize, 1);
+
+	p = (unsigned char*)bp;
+	while (elsize--)
+	{
+		v = *p;
+		t = 0;
+		for (i = 7; i >= 0; i--)
+		{
+			t <<= 1;
+			v >>= 1;
+			t |= v & 1;
+		}
+		*p++ = t;
+	}
+}
+
+void btByteSwap::LittleBitField(void* bp, int elsize)
+{
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+	RevBitFieldSwap(bp, elsize);
+#endif
+}
+
+void btByteSwap::SixtetsForIntLittle(byte * out, int src)
+{
+	byte* b = (byte*)&src;
+	out[0] = (b[0] & 0xfc) >> 2;
+	out[1] = ((b[0] & 0x3) << 4) + ((b[1] & 0xf0) >> 4);
+	out[2] = ((b[1] & 0xf) << 2) + ((b[2] & 0xc0) >> 6);
+	out[3] = b[2] & 0x3f;
+}
+
+void btByteSwap::SixtetsForIntBig(byte * out, int src)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		out[i] = src & 0x3f;
+		src >>= 6;
+	}
+}
+
+void btByteSwap::SixtetsForInt(byte * out, int src)
+{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+	SixtetsForIntLittle(out, src);
+#else
+	SixtetsForIntBig(out, src);
+#endif
+}
+
+int btByteSwap::IntForSixtetsLittle(byte * in)
+{
+	int ret = 0;
+	byte* b = (byte*)&ret;
+	b[0] |= in[0] << 2;
+	b[0] |= (in[1] & 0x30) >> 4;
+	b[1] |= (in[1] & 0xf) << 4;
+	b[1] |= (in[2] & 0x3c) >> 2;
+	b[2] |= (in[2] & 0x3) << 6;
+	b[2] |= in[3];
+	return ret;
+}
+
+int btByteSwap::IntForSixtetsBig(byte * in)
+{
+	int ret = 0;
+	ret |= in[0];
+	ret |= in[1] << 6;
+	ret |= in[2] << 2 * 6;
+	ret |= in[3] << 3 * 6;
+	return ret;
+}
+
+int btByteSwap::IntForSixtets(byte * in)
+{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+	return IntForSixtetsLittle(in);
+#else 
+	return IntForSixtetsBig(in);
+#endif
+}
+
+/*
+================================================
+RevBytesSwap
+
+Reverses byte order in place.
+
+INPUTS
+bp       bytes to reverse
+elsize   size of the underlying data type
+elcount  number of elements to swap
+
+RESULTS
+Reverses the byte order in each of elcount elements.
+================================================
+*/
+void btByteSwap::RevBytesSwap(void * bp, int elsize, int elcount)
+{
+	register unsigned char* p, *q;
+
+	p = (unsigned char*)bp;
+
+	if (elsize == 2)
+	{
+		q = p + 1;
+		while (elcount--)
+		{
+			*p ^= *q;
+			*q ^= *p;
+			*p ^= *q;
+			p += 2;
+			q += 2;
+		}
+		return;
+	}
+
+	while (elcount--)
+	{
+		q = p + elsize - 1;
+		while (p < q)
+		{
+			*p ^= *q;
+			*q ^= *p;
+			*p ^= *q;
+			++p;
+			--q;
+		}
+		p += elsize >> 1;
+	}
+}
 
 /*
 =================
 idFile::ReadInt
 =================
 */
+
 int btByteSwap::ReadInt(int& value)
 {
 	int result = Read(&value, sizeof(value));
-	value  = SDL_SwapLE32(value);
-	//value = LittleLong(value);
+	value = LittleLong(value);
 	return result;
 }
 
@@ -182,8 +380,7 @@ idFile::ReadUnsignedInt
 int btByteSwap::ReadUnsignedInt(unsigned int& value)
 {
 	int result = Read(&value, sizeof(value));
-	//value = LittleLong(value);
-	value = SDL_SwapLE32(value);
+	value = LittleLong(value);
 	return result;
 }
 
@@ -195,8 +392,7 @@ idFile::ReadShort
 int btByteSwap::ReadShort(short& value)
 {
 	int result = Read(&value, sizeof(value));
-	//value = LittleShort(value);
-	value = SDL_SwapLE16(value);
+	value = LittleShort(value);
 	return result;
 }
 
@@ -208,8 +404,7 @@ idFile::ReadUnsignedShort
 int btByteSwap::ReadUnsignedShort(unsigned short& value)
 {
 	int result = Read(&value, sizeof(value));
-	//value = LittleShort(value);
-	value = SDL_SwapLE16(value);
+	value = LittleShort(value);
 	return result;
 }
 
@@ -241,7 +436,7 @@ idFile::ReadFloat
 int btByteSwap::ReadFloat(float& value)
 {
 	int result = Read(&value, sizeof(value));
-	value = SDL_SwapFloatLE(value);
+	value = LittleFloat(value);
 	return result;
 }
 
@@ -508,7 +703,7 @@ idFile
 idFile::GetName
 =================
 */
-const char* idFile::GetName() const
+const char* idFile::GetName(void) const
 {
 	return "";
 }
@@ -518,7 +713,7 @@ const char* idFile::GetName() const
 idFile::GetFullPath
 =================
 */
-const char* idFile::GetFullPath() const
+const char* idFile::GetFullPath(void) const
 {
 	return "";
 }
@@ -550,7 +745,7 @@ int idFile::Write( const void* buffer, int len )
 idFile::Length
 =================
 */
-int idFile::Length() const
+int idFile::Length(void) const
 {
 	return 0;
 }
@@ -560,7 +755,7 @@ int idFile::Length() const
 idFile::Timestamp
 =================
 */
-ID_TIME_T idFile::Timestamp() const
+ID_TIME_T idFile::Timestamp(void) const
 {
 	return 0;
 }
@@ -570,7 +765,7 @@ ID_TIME_T idFile::Timestamp() const
 idFile::Tell
 =================
 */
-int idFile::Tell() const
+int idFile::Tell(void) const
 {
 	return 0;
 }
@@ -580,7 +775,7 @@ int idFile::Tell() const
 idFile::ForceFlush
 =================
 */
-void idFile::ForceFlush()
+void idFile::ForceFlush(void)
 {
 }
 

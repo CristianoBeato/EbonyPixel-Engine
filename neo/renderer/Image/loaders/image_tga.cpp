@@ -150,18 +150,18 @@ void btTgaImage::Load(void ** pic, int * width, int * height)
 	targa_header.colormap_type = *buf_p++;
 	targa_header.image_type = *buf_p++;
 
-	targa_header.colormap_index = LittleShort(*(short *)buf_p);
+	targa_header.colormap_index = btByteSwap::LittleShort(*(short *)buf_p);
 	buf_p += 2;
-	targa_header.colormap_length = LittleShort(*(short *)buf_p);
+	targa_header.colormap_length = btByteSwap::LittleShort(*(short *)buf_p);
 	buf_p += 2;
 	targa_header.colormap_size = *buf_p++;
-	targa_header.x_origin = LittleShort(*(short *)buf_p);
+	targa_header.x_origin = btByteSwap::LittleShort(*(short *)buf_p);
 	buf_p += 2;
-	targa_header.y_origin = LittleShort(*(short *)buf_p);
+	targa_header.y_origin = btByteSwap::LittleShort(*(short *)buf_p);
 	buf_p += 2;
-	targa_header.width = LittleShort(*(short *)buf_p);
+	targa_header.width = btByteSwap::LittleShort(*(short *)buf_p);
 	buf_p += 2;
-	targa_header.height = LittleShort(*(short *)buf_p);
+	targa_header.height = btByteSwap::LittleShort(*(short *)buf_p);
 	buf_p += 2;
 	targa_header.pixel_size = *buf_p++;
 	targa_header.attributes = *buf_p++;

@@ -1605,7 +1605,7 @@ unsigned int idCinematicLocal::yuv_to_rgb24( int y, int u, int v )
 	if( g > 255 ) g = 255;
 	if( b > 255 ) b = 255;
 	
-	return LittleLong( ( r ) + ( g << 8 ) + ( b << 16 ) );
+	return btByteSwap::LittleLong( ( r ) + ( g << 8 ) + ( b << 16 ) );
 }
 // RB end
 

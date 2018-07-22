@@ -26,8 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
+
 #include "../renderer/tr_local.h"
 
 idCVar swf_timescale( "swf_timescale", "1", CVAR_FLOAT, "timescale for swf files" );
@@ -596,8 +597,8 @@ void idSWF::RenderMorphShape( idRenderSystem* gui, const idSWFShape* shape, cons
 		{
 			continue;
 		}
-		uint32 packedColorM = LittleLong( PackColor( color.mul ) );
-		uint32 packedColorA = LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
+		uint32 packedColorM = btByteSwap::LittleLong( PackColor( color.mul ) );
+		uint32 packedColorA = btByteSwap::LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
 		
 		swfRect_t bounds;
 		bounds.tl = Lerp( shape->startBounds.tl, shape->endBounds.tl, renderState.ratio );
@@ -745,8 +746,8 @@ void idSWF::RenderShape( idRenderSystem* gui, const idSWFShape* shape, const swf
 			continue;
 		}
 		
-		uint32 packedColorM = LittleLong( PackColor( color.mul ) );
-		uint32 packedColorA = LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
+		uint32 packedColorM = btByteSwap::LittleLong( PackColor( color.mul ) );
+		uint32 packedColorA = btByteSwap::LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
 		
 		const swfRect_t& bounds = shape->startBounds;
 		if( renderState.materialWidth > 0 )
@@ -831,8 +832,8 @@ void idSWF::RenderShape( idRenderSystem* gui, const idSWFShape* shape, const swf
 			{
 				continue;
 			}
-			uint32 packedColorM = LittleLong( PackColor( color.mul ) );
-			uint32 packedColorA = LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
+			uint32 packedColorM = btByteSwap::LittleLong( PackColor( color.mul ) );
+			uint32 packedColorA = btByteSwap::LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
 			
 			gui->SetGLState( GLStateForRenderState( renderState ) | GLS_POLYMODE_LINE );
 			
@@ -2048,7 +2049,7 @@ int idSWF::DrawText( idRenderSystem* gui, float x, float y, float scale, idVec4 
 	}
 	
 	const uint32 currentColor = PackColor( color );
-	uint32 currentColorNativeByteOrder = LittleLong( currentColor );
+	uint32 currentColorNativeByteOrder = btByteSwap::LittleLong( currentColor );
 	
 	int len = drawText.Length();
 	if( limit > 0 && len > limit )
@@ -2076,7 +2077,7 @@ int idSWF::DrawText( idRenderSystem* gui, float x, float y, float scale, idVec4 
 				newColor[3] = color[3];
 			}
 			renderSystem->SetColor( newColor );
-			currentColorNativeByteOrder = LittleLong( PackColor( newColor ) );
+			currentColorNativeByteOrder = btByteSwap::LittleLong( PackColor( newColor ) );
 			continue;
 		}
 		

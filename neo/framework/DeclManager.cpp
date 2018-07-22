@@ -1199,7 +1199,7 @@ int idDeclManagerLocal::GetChecksum() const
 		}
 	}
 	
-	LittleRevBytes( checksumData, sizeof( int ), total * 2 );
+	btByteSwap::LittleRevBytes( checksumData, sizeof( int ), total * 2 );
 	return MD5_BlockChecksum( checksumData, total * 2 * sizeof( int ) );
 }
 

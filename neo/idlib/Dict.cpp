@@ -706,7 +706,7 @@ idDict::WriteToFileHandle
 */
 void idDict::WriteToFileHandle( idFile* f ) const
 {
-	int c = LittleLong( args.Num() );
+	int c = btByteSwap::LittleLong( args.Num() );
 	f->Write( &c, sizeof( c ) );
 	for( int i = 0; i < args.Num(); i++ )  	// don't loop on the swapped count use the original
 	{
@@ -781,7 +781,7 @@ void idDict::ReadFromFileHandle( idFile* f )
 	Clear();
 	
 	f->Read( &c, sizeof( c ) );
-	c = LittleLong( c );
+	c = btByteSwap::LittleLong( c );
 	for( int i = 0; i < c; i++ )
 	{
 		key = ReadString( f );

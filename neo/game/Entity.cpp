@@ -736,7 +736,7 @@ void idEntity::Save( idSaveGame* savefile ) const
 	}
 	
 	entityFlags_s flags = fl;
-	LittleBitField( &flags, sizeof( flags ) );
+	btByteSwap::LittleBitField( &flags, sizeof( flags ) );
 	savefile->Write( &flags, sizeof( flags ) );
 	
 	savefile->WriteInt( timeGroup );
@@ -822,7 +822,7 @@ void idEntity::Restore( idRestoreGame* savefile )
 	}
 	
 	savefile->Read( &fl, sizeof( fl ) );
-	LittleBitField( &fl, sizeof( fl ) );
+	btByteSwap::LittleBitField( &fl, sizeof( fl ) );
 	
 	savefile->ReadInt( timeGroup );
 	savefile->ReadBool( noGrab );

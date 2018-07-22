@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "renderer/tr_local.h"
 #include "Model_local.h"
@@ -38,8 +38,6 @@ If you have questions concerning this license or the applicable additional terms
 	idMD3Mesh
 
 ***********************************************************************/
-
-#define	LL(x) x=LittleLong(x)
 
 /*
 =================
@@ -72,7 +70,7 @@ void idRenderModelMD3::InitFromFile( const char* fileName )
 	
 	pinmodel = ( md3Header_t* )buffer;
 	
-	version = LittleLong( pinmodel->version );
+	version = btByteSwap::LittleLong( pinmodel->version );
 	if( version != MD3_VERSION )
 	{
 		fileSystem->FreeFile( buffer );
@@ -81,11 +79,11 @@ void idRenderModelMD3::InitFromFile( const char* fileName )
 		return;
 	}
 	
-	size = LittleLong( pinmodel->ofsEnd );
+	size = btByteSwap::LittleLong( pinmodel->ofsEnd );
 	dataSize += size;
 	md3 = ( md3Header_t* )Mem_Alloc( size, TAG_MODEL );
 	
-	memcpy( md3, buffer, LittleLong( pinmodel->ofsEnd ) );
+	memcpy( md3, buffer, btByteSwap::LittleLong( pinmodel->ofsEnd ) );
 	
 	LL( md3->ident );
 	LL( md3->version );
@@ -108,12 +106,12 @@ void idRenderModelMD3::InitFromFile( const char* fileName )
 	frame = ( md3Frame_t* )( ( byte* )md3 + md3->ofsFrames );
 	for( i = 0 ; i < md3->numFrames ; i++, frame++ )
 	{
-		frame->radius = LittleFloat( frame->radius );
+		frame->radius = btByteSwap::LittleFloat( frame->radius );
 		for( j = 0 ; j < 3 ; j++ )
 		{
-			frame->bounds[0][j] = LittleFloat( frame->bounds[0][j] );
-			frame->bounds[1][j] = LittleFloat( frame->bounds[1][j] );
-			frame->localOrigin[j] = LittleFloat( frame->localOrigin[j] );
+			frame->bounds[0][j] = btByteSwap::LittleFloat( frame->bounds[0][j] );
+			frame->bounds[1][j] = btByteSwap::LittleFloat( frame->bounds[1][j] );
+			frame->localOrigin[j] = btByteSwap::LittleFloat( frame->localOrigin[j] );
 		}
 	}
 	
@@ -123,10 +121,10 @@ void idRenderModelMD3::InitFromFile( const char* fileName )
 	{
 		for( j = 0 ; j < 3 ; j++ )
 		{
-			tag->origin[j] = LittleFloat( tag->origin[j] );
-			tag->axis[0][j] = LittleFloat( tag->axis[0][j] );
-			tag->axis[1][j] = LittleFloat( tag->axis[1][j] );
-			tag->axis[2][j] = LittleFloat( tag->axis[2][j] );
+			tag->origin[j] = btByteSwap::LittleFloat( tag->origin[j] );
+			tag->axis[0][j] = btByteSwap::LittleFloat( tag->axis[0][j] );
+			tag->axis[1][j] = btByteSwap::LittleFloat( tag->axis[1][j] );
+			tag->axis[2][j] = btByteSwap::LittleFloat( tag->axis[2][j] );
 		}
 	}
 	
@@ -199,19 +197,19 @@ void idRenderModelMD3::InitFromFile( const char* fileName )
 		st = ( md3St_t* )( ( byte* )surf + surf->ofsSt );
 		for( j = 0 ; j < surf->numVerts ; j++, st++ )
 		{
-			st->st[0] = LittleFloat( st->st[0] );
-			st->st[1] = LittleFloat( st->st[1] );
+			st->st[0] = btByteSwap::LittleFloat( st->st[0] );
+			st->st[1] = btByteSwap::LittleFloat( st->st[1] );
 		}
 		
 		// swap all the XyzNormals
 		xyz = ( md3XyzNormal_t* )( ( byte* )surf + surf->ofsXyzNormals );
 		for( j = 0 ; j < surf->numVerts * surf->numFrames ; j++, xyz++ )
 		{
-			xyz->xyz[0] = LittleShort( xyz->xyz[0] );
-			xyz->xyz[1] = LittleShort( xyz->xyz[1] );
-			xyz->xyz[2] = LittleShort( xyz->xyz[2] );
+			xyz->xyz[0] = btByteSwap::LittleShort( xyz->xyz[0] );
+			xyz->xyz[1] = btByteSwap::LittleShort( xyz->xyz[1] );
+			xyz->xyz[2] = btByteSwap::LittleShort( xyz->xyz[2] );
 			
-			xyz->normal = LittleShort( xyz->normal );
+			xyz->normal = btByteSwap::LittleShort( xyz->normal );
 		}
 		
 		

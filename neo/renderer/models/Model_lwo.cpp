@@ -26,9 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
-
+#pragma hdrstop
 
 #include "Model_lwo.h"
 
@@ -1130,7 +1129,7 @@ short getI2( idFile* fp )
 		flen = FLEN_ERROR;
 		return 0;
 	}
-	BigRevBytes( &i, 2, 1 );
+	btByteSwap::BigRevBytes( &i, 2, 1 );
 	flen += 2;
 	return i;
 }
@@ -1146,7 +1145,7 @@ int getI4( idFile* fp )
 		flen = FLEN_ERROR;
 		return 0;
 	}
-	BigRevBytes( &i, 4, 1 );
+	btByteSwap::BigRevBytes( &i, 4, 1 );
 	flen += 4;
 	return i;
 }
@@ -1179,7 +1178,7 @@ unsigned short getU2( idFile* fp )
 		flen = FLEN_ERROR;
 		return 0;
 	}
-	BigRevBytes( &i, 2, 1 );
+	btByteSwap::BigRevBytes( &i, 2, 1 );
 	flen += 2;
 	return i;
 }
@@ -1195,7 +1194,8 @@ unsigned int getU4( idFile* fp )
 		flen = FLEN_ERROR;
 		return 0;
 	}
-	BigRevBytes( &i, 4, 1 );
+
+	btByteSwap::BigRevBytes( &i, 4, 1 );
 	flen += 4;
 	return i;
 }
@@ -1262,7 +1262,8 @@ float getF4( idFile* fp )
 		flen = FLEN_ERROR;
 		return 0.0f;
 	}
-	BigRevBytes( &f, 4, 1 );
+
+	btByteSwap::BigRevBytes( &f, 4, 1 );
 	flen += 4;
 	
 	if( IEEE_FLT_IS_DENORMAL( f ) )
@@ -1346,7 +1347,7 @@ short sgetI2( unsigned char** bp )
 	
 	if( flen == FLEN_ERROR ) return 0;
 	memcpy( &i, *bp, 2 );
-	BigRevBytes( &i, 2, 1 );
+	btByteSwap::BigRevBytes( &i, 2, 1 );
 	flen += 2;
 	( *bp ) += 2;
 	return i;
@@ -1360,7 +1361,7 @@ int sgetI4( unsigned char** bp )
 	
 	if( flen == FLEN_ERROR ) return 0;
 	memcpy( &i, *bp, sizeof( i ) );
-	BigRevBytes( &i, 4, 1 );
+	btByteSwap::BigRevBytes( &i, 4, 1 );
 	flen += 4;
 	( *bp ) += 4;
 	return i;
@@ -1398,7 +1399,7 @@ unsigned int sgetU4( unsigned char** bp )
 	
 	if( flen == FLEN_ERROR ) return 0;
 	memcpy( &i, *bp, 4 );
-	BigRevBytes( &i, 4, 1 );
+	btByteSwap::BigRevBytes( &i, 4, 1 );
 	flen += 4;
 	( *bp ) += 4;
 	return i;
@@ -1434,7 +1435,7 @@ float sgetF4( unsigned char** bp )
 	
 	if( flen == FLEN_ERROR ) return 0.0f;
 	memcpy( &f, *bp, 4 );
-	BigRevBytes( &f, 4, 1 );
+	btByteSwap::BigRevBytes( &f, 4, 1 );
 	flen += 4;
 	( *bp ) += 4;
 	
@@ -2568,8 +2569,10 @@ int lwGetPoints( idFile* fp, int cksize, lwPointList* point )
 	/* read the whole chunk */
 	
 	f = ( float* ) getbytes( fp, cksize );
-	if( !f ) return 0;
-	BigRevBytes( f, 4, np * 3 );
+	if( !f ) 
+		return 0;
+
+	btByteSwap::BigRevBytes( f, 4, np * 3 );
 	
 	/* assign position values */
 	

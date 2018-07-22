@@ -360,7 +360,7 @@ idRenderSystemLocal::SetColor
 */
 void idRenderSystemLocal::SetColor( const idVec4& rgba )
 {
-	currentColorNativeBytesOrder = LittleLong( PackColor( rgba ) );
+	currentColorNativeBytesOrder = btByteSwap::LittleLong( PackColor( rgba ) );
 }
 
 /*
@@ -370,7 +370,7 @@ idRenderSystemLocal::GetColor
 */
 uint32 idRenderSystemLocal::GetColor()
 {
-	return LittleLong( currentColorNativeBytesOrder );
+	return btByteSwap::LittleLong( currentColorNativeBytesOrder );
 }
 
 /*

@@ -107,7 +107,7 @@ void idBrittleFracture::Save( idSaveGame* savefile ) const
 
 	savefile->WriteInt( health );
 	entityFlags_s flags = fl;
-	LittleBitField( &flags, sizeof( flags ) );
+	btByteSwap::LittleBitField( &flags, sizeof( flags ) );
 	savefile->Write( &flags, sizeof( flags ) );
 	
 	// setttings
@@ -155,7 +155,7 @@ void idBrittleFracture::Restore( idRestoreGame* savefile )
 
 	savefile->ReadInt( health );
 	savefile->Read( &fl, sizeof( fl ) );
-	LittleBitField( &fl, sizeof( fl ) );
+	btByteSwap::LittleBitField( &fl, sizeof( fl ) );
 	
 	// setttings
 	savefile->ReadMaterial( material );

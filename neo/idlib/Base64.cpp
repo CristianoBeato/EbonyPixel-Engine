@@ -61,7 +61,7 @@ void idBase64::Encode( const byte* from, int size )
 		if( size == 0 || i == 3 )
 		{
 			byte out[4];
-			SixtetsForInt( out, w );
+			btByteSwap::SixtetsForInt( out, w );
 			for( j = 0; j * 6 < i * 8; ++j )
 			{
 				*to++ = sixtet_to_base64[ out[j] ];
@@ -134,7 +134,7 @@ int idBase64::Decode( byte* to ) const
 		++from;
 		if( *from == '\0' || *from == '=' || i == 4 )
 		{
-			w = IntForSixtets( in );
+			w = btByteSwap::IntForSixtets( in );
 			for( j = 0; j * 8 < i * 6; ++j )
 			{
 				*to++ = w & 0xff;

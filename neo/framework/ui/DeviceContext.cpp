@@ -1194,7 +1194,7 @@ int idDeviceContextOptimized::DrawText( float x, float y, float scale, idVec4 co
 	}
 	
 	const uint32 currentColor = PackColor( color );
-	uint32 currentColorNativeByteOrder = LittleLong( currentColor );
+	uint32 currentColorNativeByteOrder = btByteSwap::LittleLong( currentColor );
 	
 	int len = drawText.Length();
 	if( limit > 0 && len > limit )
@@ -1222,7 +1222,7 @@ int idDeviceContextOptimized::DrawText( float x, float y, float scale, idVec4 co
 				newColor[3] = color[3];
 			}
 			renderSystem->SetColor( newColor );
-			currentColorNativeByteOrder = LittleLong( PackColor( newColor ) );
+			currentColorNativeByteOrder = btByteSwap::LittleLong( PackColor( newColor ) );
 			continue;
 		}
 		

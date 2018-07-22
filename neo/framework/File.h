@@ -55,6 +55,29 @@ class btByteSwap
 public:
 	virtual					~btByteSwap(void) {};
 
+	static short			BigShort(short l);
+	static	short			LittleShort(short l);
+
+	static int				BigLong(int l);
+	static int				LittleLong(int l);
+
+	//float rev
+	static float			BigFloat(float l);
+	static float			LittleFloat(float l);
+
+	//Reverses byte order in place.
+	static void				BigRevBytes(void* bp, int elsize, int elcount);
+	static void				LittleRevBytes(void* bp, int elsize, int elcount);
+
+	//
+	static void				LittleBitField(void* bp, int elsize);
+
+	// for base64
+	static void				SixtetsForInt(byte* out, int src);
+
+	//
+	static int				IntForSixtets(byte* in);
+
 	virtual int				Read(void* buffer, int len) = 0;
 	virtual int				Write(const void* buffer, int len) = 0;
 
@@ -120,7 +143,16 @@ public:
 		}
 		return r;
 	}
+
+protected:
+	static void				SixtetsForIntLittle(byte* out, int src);
+	static void				SixtetsForIntBig(byte* out, int src);
+	static int				IntForSixtetsLittle(byte* in);
+	static int				IntForSixtetsBig(byte* in);
+	static void				RevBytesSwap(void* bp, int elsize, int elcount);
+	static void				RevBitFieldSwap(void* bp, int elsize);
 };
+
 //Beato End
 
 class idFile : public btByteSwap
