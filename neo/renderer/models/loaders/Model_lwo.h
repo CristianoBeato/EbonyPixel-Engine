@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __LWO2_H__
 #define __LWO2_H__
 
+#include "renderer/models/internal/Model_static.h"
+
 /*
 ======================================================================
 
@@ -712,5 +714,19 @@ unsigned int   sgetU4( unsigned char** bp );
 int   sgetVX( unsigned char** bp );
 float sgetF4( unsigned char** bp );
 char* sgetS0( unsigned char** bp );
+
+class btRenderModelLWO : public idRenderModelStatic
+{
+public:
+	btRenderModelLWO(void);
+	virtual ~btRenderModelLWO(void);
+
+protected:
+	virtual bool	Load(void) override;
+
+private:
+	bool			ConvertLWOToModelSurfaces( const struct st_lwObject* lwo );
+
+};
 
 #endif /* !__LWO2_H__ */

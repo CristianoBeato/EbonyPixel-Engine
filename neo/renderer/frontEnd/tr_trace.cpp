@@ -27,11 +27,12 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "renderer/tr_local.h"
 #include "renderer/models/Model_local.h"
+#include "renderer/models/internal/Model_skined.h"
 
 #include "idlib/geometry/DrawVert_intrinsics.h"
 
@@ -420,33 +421,24 @@ static bool R_LineIntersectsTriangleExpandedWithCircle( localTrace_t& hit, const
 	const float planeDistEnd = plane.Distance( end );
 	
 	if( planeDistStart < 0.0f )
-	{
 		return false;		// starts past the triangle
-	}
+	
 	
 	if( planeDistEnd > 0.0f )
-	{
 		return false;		// finishes in front of the triangle
-	}
 	
 	const float planeDelta = planeDistStart - planeDistEnd;
 	
 	if( planeDelta < idMath::FLT_SMALLEST_NON_DENORMAL )
-	{
 		return false;		// coming at the triangle from behind or parallel
-	}
 	
 	const float fraction = planeDistStart / planeDelta;
 	
 	if( fraction < 0.0f )
-	{
 		return false;		// shouldn't happen
-	}
 	
 	if( fraction >= hit.fraction )
-	{
 		return false;		// have already hit something closer
-	}
 	
 	// find the exact point of impact with the plane
 	const idVec3 point = start + fraction * ( end - start );
@@ -464,15 +456,13 @@ static bool R_LineIntersectsTriangleExpandedWithCircle( localTrace_t& hit, const
 	if( d0 > 0.0f )
 	{
 		if( radiusSqr <= 0.0f )
-		{
 			return false;
-		}
+		
 		idVec3 edge = triVert0 - triVert1;
 		const float edgeLengthSqr = edge.LengthSqr();
 		if( cross0.LengthSqr() > edgeLengthSqr * radiusSqr )
-		{
 			return false;
-		}
+		
 		d0 = edge * dir0;
 		if( d0 < 0.0f )
 		{
@@ -481,9 +471,7 @@ static bool R_LineIntersectsTriangleExpandedWithCircle( localTrace_t& hit, const
 			if( d0 < 0.0f )
 			{
 				if( dir0.LengthSqr() > radiusSqr )
-				{
 					return false;
-				}
 			}
 		}
 		else if( d0 > edgeLengthSqr )
@@ -493,9 +481,8 @@ static bool R_LineIntersectsTriangleExpandedWithCircle( localTrace_t& hit, const
 			if( d0 < 0.0f )
 			{
 				if( dir1.LengthSqr() > radiusSqr )
-				{
 					return false;
-				}
+				
 			}
 		}
 	}
@@ -620,29 +607,21 @@ localTrace_t R_LocalTrace( const idVec3& start, const idVec3& end, const float r
 	byte totalOr = 0;
 	
 	// RB: added check wether GPU skinning is available at all
-	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->jointsInverted : NULL;
+	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->m_jointsInverted : NULL;
 	// RB end
 	
 	if( joints != NULL )
-	{
 		R_TracePointCullSkinned( cullBits, totalOr, radius, planes, tri->verts, tri->numVerts, joints );
-	}
 	else
-	{
 		R_TracePointCullStatic( cullBits, totalOr, radius, planes, tri->verts, tri->numVerts );
-	}
 	
 	// if we don't have points on both sides of both the ray planes, no intersection
 	if( ( totalOr ^ ( totalOr >> 4 ) ) & 3 )
-	{
 		return hit;
-	}
 	
 	// if we don't have any points between front and end, no intersection
 	if( ( totalOr ^ ( totalOr >> 1 ) ) & 4 )
-	{
 		return hit;
-	}
 	
 	// start streaming the indexes
 	idODSStreamedArray< triIndex_t, 256, SBT_QUAD, 3 > indexesODS( tri->indexes, tri->numIndexes );
@@ -663,15 +642,11 @@ localTrace_t R_LocalTrace( const idVec3& start, const idVec3& end, const float r
 			
 			// if we don't have points on both sides of both the ray planes, no intersection
 			if( likely( ( triOr ^ ( triOr >> 4 ) ) & 3 ) )
-			{
 				continue;
-			}
 			
 			// if we don't have any points between front and end, no intersection
 			if( unlikely( ( triOr ^ ( triOr >> 1 ) ) & 4 ) )
-			{
 				continue;
-			}
 			
 			const idVec3 triVert0 = idDrawVert::GetSkinnedDrawVertPosition( idODSObject< idDrawVert > ( & tri->verts[i0] ), joints );
 			const idVec3 triVert1 = idDrawVert::GetSkinnedDrawVertPosition( idODSObject< idDrawVert > ( & tri->verts[i1] ), joints );

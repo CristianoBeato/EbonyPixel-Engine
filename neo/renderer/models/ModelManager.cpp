@@ -30,8 +30,20 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "Model_local.h"
-#include "Model_md5.h"
-#include "Model_iqm.h"
+
+#include "renderer/models/internal/Model_beam.h"
+#include "renderer/models/internal/Model_sprite.h"
+#include "renderer/models/internal/Model_prt.h"
+#include "renderer/models/internal/Model_static.h"
+
+#include "renderer/models/loaders/Model_lwo.h"
+#include "renderer/models/loaders/Model_ase.h"
+#include "renderer/models/loaders/Model_ma.h"
+#include "renderer/models/loaders/Model_md5.h"
+#include "renderer/models/loaders/Model_iqm.h"
+#include "renderer/models/loaders/Model_md3.h"
+#include "renderer/models/loaders/Model_liquid.h"
+
 #include "renderer/tr_local.h"	// just for R_FreeWorldInteractions and R_CreateWorldInteractions
 
 idCVar binaryLoadRenderModels( "binaryLoadRenderModels", "1", 0, "enable binary load/write of render models" );
@@ -47,20 +59,20 @@ public:
 	idRenderModelManagerLocal();
 	virtual					~idRenderModelManagerLocal() {}
 	
-	virtual void			Init();
-	virtual void			Shutdown();
-	virtual idRenderModel* 	AllocModel();
+	virtual void			Init(void);
+	virtual void			Shutdown(void);
+	virtual idRenderModel* 	AllocModel(void);
 	virtual void			FreeModel( idRenderModel* model );
 	virtual idRenderModel* 	FindModel( const char* modelName );
 	virtual idRenderModel* 	CheckModel( const char* modelName );
-	virtual idRenderModel* 	DefaultModel();
+	virtual idRenderModel* 	DefaultModel(void);
 	virtual void			AddModel( idRenderModel* model );
 	virtual void			RemoveModel( idRenderModel* model );
 	virtual void			ReloadModels( bool forceAll = false );
 	virtual void			FreeModelVertexCaches();
 	virtual void			WritePrecacheCommands( idFile* file );
-	virtual void			BeginLevelLoad();
-	virtual void			EndLevelLoad();
+	virtual void			BeginLevelLoad(void);
+	virtual void			EndLevelLoad(void);
 	virtual void			Preload( const idPreloadManifest& manifest );
 	
 	virtual	void			PrintMemInfo( MemInfo_t* mi );
@@ -242,7 +254,7 @@ void idRenderModelManagerLocal::Init()
 	insideLevelLoad = false;
 	
 	// create a default model
-	idRenderModelStatic* model = new( TAG_MODEL ) idRenderModelStatic;
+	idRenderModelLocal* model = new( TAG_MODEL ) idRenderModelStatic;
 	model->InitEmpty( "_DEFAULT" );
 	model->MakeDefaultModel();
 	model->SetLevelLoadReferenced( true );
@@ -250,13 +262,13 @@ void idRenderModelManagerLocal::Init()
 	AddModel( model );
 	
 	// create the beam model
-	idRenderModelStatic* beam = new( TAG_MODEL ) idRenderModelBeam;
+	idRenderModelLocal* beam = new( TAG_MODEL ) idRenderModelBeam;
 	beam->InitEmpty( "_BEAM" );
 	beam->SetLevelLoadReferenced( true );
 	beamModel = beam;
 	AddModel( beam );
 	
-	idRenderModelStatic* sprite = new( TAG_MODEL ) idRenderModelSprite;
+	idRenderModelLocal* sprite = new( TAG_MODEL ) idRenderModelSprite;
 	sprite->InitEmpty( "_SPRITE" );
 	sprite->SetLevelLoadReferenced( true );
 	spriteModel = sprite;
@@ -268,7 +280,7 @@ void idRenderModelManagerLocal::Init()
 idRenderModelManagerLocal::Shutdown
 =================
 */
-void idRenderModelManagerLocal::Shutdown()
+void idRenderModelManagerLocal::Shutdown(void)
 {
 	models.DeleteContents( true );
 	hash.Free();
@@ -283,9 +295,7 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 {
 
 	if( !_modelName || !_modelName[0] )
-	{
 		return NULL;
-	}
 	
 	idStrStatic< MAX_OSPATH > canonical = _modelName;
 	canonical.ToLower();
@@ -316,14 +326,10 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 					idFileLocal file( fileSystem->OpenFileReadMemory( generatedFileName ) );
 					model->PurgeModel();
 					if( !model->LoadBinaryModel( file, sourceTimeStamp ) )
-					{
 						model->LoadModel();
-					}
 				}
 				else
-				{
 					model->LoadModel();
-				}
 			}
 			else if( insideLevelLoad && !model->IsLevelLoadReferenced() )
 			{
@@ -343,33 +349,36 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 	
 	idRenderModel* model = NULL;
 	
-	// RB: added dae
-	if( ( extension.Icmp( "dae" ) == 0 ) || ( extension.Icmp( "ase" ) == 0 ) || ( extension.Icmp( "lwo" ) == 0 ) || ( extension.Icmp( "flt" ) == 0 ) || ( extension.Icmp( "ma" ) == 0 ) )
-	{
+	if (extension.Icmp("lwo") == 0)
+		model = new(TAG_MODEL) btRenderModelLWO;
+	else if (extension.Icmp("ma") == 0)
+		model = new(TAG_MODEL) btRenderModelMA;
+	else if (extension.Icmp("ase") == 0)
+		model = new(TAG_MODEL) btRenderModelASE;
+// RB: added dae
+#if 1
+	else if(extension.Icmp( "dae" ) == 0 )
 		model = new( TAG_MODEL ) idRenderModelStatic;
-	}
+#endif
+// RB end
+#if 0
+	else if (extension.Icmp("flt") == 0)
+		model = new(TAG_MODEL) idRenderModelStatic;
+#endif
 	else if( extension.Icmp( MD5_MESH_EXT ) == 0 )
-	{
 		model = new( TAG_MODEL ) idRenderModelMD5;
-	}
 //Beato Begin: Suport for IQM, Internal Quake Model
+#if 0
 	else if (extension.Icmp(IQM_MESH_EXT) == 0)
-	{
 		model = new(TAG_MODEL) idRenderModelIQM;
-	}
+#endif
 //Beato End
 	else if( extension.Icmp( "md3" ) == 0 )
-	{
 		model = new( TAG_MODEL ) idRenderModelMD3;
-	}
 	else if( extension.Icmp( "prt" ) == 0 )
-	{
 		model = new( TAG_MODEL ) idRenderModelPrt;
-	}
 	else if( extension.Icmp( "liquid" ) == 0 )
-	{
 		model = new( TAG_MODEL ) idRenderModelLiquid;
-	}
 	
 	idStrStatic< MAX_OSPATH > generatedFileName;
 	
@@ -386,9 +395,7 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 		idFileLocal file( fileSystem->OpenFileReadMemory( generatedFileName ) );
 		
 		if( !model->SupportsBinaryModel() || !binaryLoadRenderModels.GetBool() )
-		{
 			model->InitFromFile( canonical );
-		}
 		else
 		{
 			if( !model->LoadBinaryModel( file, sourceTimeStamp ) )
@@ -414,16 +421,12 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 	{
 	
 		if( extension.Length() )
-		{
 			common->Warning( "unknown model type '%s'", canonical.c_str() );
-		}
 		
 		if( !createIfNotFound )
-		{
 			return NULL;
-		}
 		
-		idRenderModelStatic*	smodel = new( TAG_MODEL ) idRenderModelStatic;
+		idRenderModelLocal*	smodel = new( TAG_MODEL ) idRenderModelStatic;
 		smodel->InitEmpty( canonical );
 		smodel->MakeDefaultModel();
 		
@@ -471,7 +474,8 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 			exportedFileName.SetFileExtension( ".mtl" );
 			idFileLocal mtlFile( fileSystem->OpenFileWrite( exportedFileName, "fs_basepath" ) );
 			
-			model->ExportOBJ( objFile, mtlFile );
+			//model->ExportOBJ( objFile, mtlFile );
+			static_cast<idRenderModelStatic*>(model)->ExportOBJ(objFile, mtlFile);
 		}
 	}
 	// RB end
@@ -499,24 +503,26 @@ idRenderModelManagerLocal::FreeModel
 void idRenderModelManagerLocal::FreeModel( idRenderModel* model )
 {
 	if( !model )
-	{
 		return;
-	}
-	if( !dynamic_cast<idRenderModelStatic*>( model ) )
+
+	if( !dynamic_cast<idRenderModelLocal*>( model ) )
 	{
 		common->Error( "idRenderModelManager::FreeModel: model '%s' is not a static model", model->Name() );
 		return;
 	}
+
 	if( model == defaultModel )
 	{
 		common->Error( "idRenderModelManager::FreeModel: can't free the default model" );
 		return;
 	}
+
 	if( model == beamModel )
 	{
 		common->Error( "idRenderModelManager::FreeModel: can't free the beam model" );
 		return;
 	}
+
 	if( model == spriteModel )
 	{
 		common->Error( "idRenderModelManager::FreeModel: can't free the sprite model" );

@@ -1969,7 +1969,7 @@ DEFORMED SURFACES
 R_BuildDeformInfo
 ===================
 */
-deformInfo_t* R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const int* indexes,
+deformInfo_t* R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const uint32* indexes,
 								 bool useUnsmoothedTangents )
 {
 	srfTriangles_t	tri;

@@ -29,9 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-#include "renderer/tr_local.h"
-#include "Model_local.h"
 #include "Model_md3.h"
+#include "renderer/tr_local.h"
+#include "renderer/models/internal/Model_static.h"
+#include "renderer/models/Model_local.h"
 
 /***********************************************************************
 
@@ -60,7 +61,7 @@ void idRenderModelMD3::InitFromFile( const char* fileName )
 	int					size;
 	
 	
-	name = fileName;
+	m_name = fileName;
 	
 	size = fileSystem->ReadFile( fileName, &buffer, NULL );
 	if( !size || size < 0 )
@@ -225,7 +226,7 @@ void idRenderModelMD3::InitFromFile( const char* fileName )
 idRenderModelMD3::IsDynamicModel
 =================
 */
-dynamicModel_t idRenderModelMD3::IsDynamicModel() const
+dynamicModel_t idRenderModelMD3::IsDynamicModel(void) const
 {
 	return DM_CACHED;
 }
@@ -303,7 +304,7 @@ idRenderModel* idRenderModelMD3::InstantiateDynamicModel( const struct renderEnt
 	int				numVerts;
 	md3Surface_t* 	surface;
 	int				frame, oldframe;
-	idRenderModelStatic*	staticModel;
+	idRenderModelLocal*	staticModel;
 	
 	if( cachedModel )
 	{
@@ -311,8 +312,8 @@ idRenderModel* idRenderModelMD3::InstantiateDynamicModel( const struct renderEnt
 		cachedModel = NULL;
 	}
 	
-	staticModel = new( TAG_MODEL ) idRenderModelStatic;
-	staticModel->bounds.Clear();
+	staticModel = new( TAG_MODEL ) btRenderModelSkined;
+	staticModel->m_bounds.Clear();
 	
 	surface = ( md3Surface_t* )( ( byte* )md3 + md3->ofsSurfaces );
 	
@@ -357,8 +358,8 @@ idRenderModel* idRenderModelMD3::InstantiateDynamicModel( const struct renderEnt
 		R_BoundTriSurf( tri );
 		
 		staticModel->AddSurface( surf );
-		staticModel->bounds.AddPoint( surf.geometry->bounds[0] );
-		staticModel->bounds.AddPoint( surf.geometry->bounds[1] );
+		staticModel->m_bounds.AddPoint( surf.geometry->bounds[0] );
+		staticModel->m_bounds.AddPoint( surf.geometry->bounds[1] );
 		
 		// find the next surface
 		surface = ( md3Surface_t* )( ( byte* )surface + surface->ofsEnd );

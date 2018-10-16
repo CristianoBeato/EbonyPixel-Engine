@@ -84,8 +84,8 @@ struct overlay_t
 class idRenderModelOverlay
 {
 public:
-	idRenderModelOverlay();
-	~idRenderModelOverlay();
+	idRenderModelOverlay(void);
+	~idRenderModelOverlay(void);
 	
 	void						ReUse();
 	

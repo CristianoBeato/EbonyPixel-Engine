@@ -26,12 +26,12 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 
 #include "renderer/tr_local.h"
-#include "Model_local.h"
+#include "Model_liquid.h"
 
 #define LIQUID_MAX_SKIP_FRAMES	5
 #define LIQUID_MAX_TYPES		3
@@ -41,7 +41,7 @@ If you have questions concerning this license or the applicable additional terms
 idRenderModelLiquid::idRenderModelLiquid
 ====================
 */
-idRenderModelLiquid::idRenderModelLiquid()
+idRenderModelLiquid::idRenderModelLiquid() : btRenderModelDinamic()
 {
 	verts_x		= 32;
 	verts_y		= 32;
@@ -375,14 +375,14 @@ idRenderModelLiquid::InitFromFile
 */
 void idRenderModelLiquid::InitFromFile( const char* fileName )
 {
-	int				i, x, y;
-	idToken			token;
-	idParser		parser( LEXFL_ALLOWPATHNAMES | LEXFL_NOSTRINGESCAPECHARS );
-	idList<int>		tris;
-	float			size_x, size_y;
-	float			rate;
+	int					i, x, y;
+	idToken				token;
+	idParser			parser( LEXFL_ALLOWPATHNAMES | LEXFL_NOSTRINGESCAPECHARS );
+	idList<uint32>		tris;
+	float				size_x, size_y;
+	float				rate;
 	
-	name = fileName;
+	m_name = fileName;
 	
 	if( !parser.LoadFile( fileName ) )
 	{
@@ -396,17 +396,14 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 	while( parser.ReadToken( &token ) )
 	{
 		if( !token.Icmp( "seed" ) )
-		{
 			seed = parser.ParseInt();
-		}
+
 		else if( !token.Icmp( "size_x" ) )
-		{
 			size_x = parser.ParseFloat();
-		}
+
 		else if( !token.Icmp( "size_y" ) )
-		{
 			size_y = parser.ParseFloat();
-		}
+
 		else if( !token.Icmp( "verts_x" ) )
 		{
 			verts_x = parser.ParseFloat();
@@ -417,6 +414,7 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 				return;
 			}
 		}
+
 		else if( !token.Icmp( "verts_y" ) )
 		{
 			verts_y = parser.ParseFloat();
@@ -438,21 +436,17 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 			}
 		}
 		else if( !token.Icmp( "density" ) )
-		{
 			density = parser.ParseFloat();
-		}
+		
 		else if( !token.Icmp( "drop_height" ) )
-		{
 			drop_height = parser.ParseFloat();
-		}
+		
 		else if( !token.Icmp( "drop_radius" ) )
-		{
 			drop_radius = parser.ParseInt();
-		}
+
 		else if( !token.Icmp( "drop_delay" ) )
-		{
 			drop_delay = SEC2MS( parser.ParseFloat() );
-		}
+
 		else if( !token.Icmp( "shader" ) )
 		{
 			parser.ReadToken( &token );
@@ -516,12 +510,12 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 	// sil edge connectivity and normal / tangent generation information
 	deformInfo = R_BuildDeformInfo( verts.Num(), verts.Ptr(), tris.Num(), tris.Ptr(), true );
 	
-	bounds.Clear();
-	bounds.AddPoint( idVec3( 0.0f, 0.0f, drop_height * -10.0f ) );
-	bounds.AddPoint( idVec3( ( verts_x - 1 ) * scale_x, ( verts_y - 1 ) * scale_y, drop_height * 10.0f ) );
+	m_bounds.Clear();
+	m_bounds.AddPoint( idVec3( 0.0f, 0.0f, drop_height * -10.0f ) );
+	m_bounds.AddPoint( idVec3( ( verts_x - 1 ) * scale_x, ( verts_y - 1 ) * scale_y, drop_height * 10.0f ) );
 	
 	// set the timestamp for reloadmodels
-	fileSystem->ReadFile( name, NULL, &timeStamp );
+	fileSystem->ReadFile( m_name, NULL, &m_timeStamp );
 	
 	Reset();
 }
@@ -533,7 +527,7 @@ idRenderModelLiquid::InstantiateDynamicModel
 */
 idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel )
 {
-	idRenderModelStatic*	staticModel;
+	idRenderModelLocal*	staticModel;
 	int		frames;
 	int		t;
 	float	lerp;
@@ -578,9 +572,9 @@ idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct render
 	lerp = ( float )( t - time ) / ( float )update_tics;
 	modelSurface_t surf = GenerateSurface( lerp );
 	
-	staticModel = new( TAG_MODEL ) idRenderModelStatic;
+	staticModel = new( TAG_MODEL ) btRenderModelDinamic;
 	staticModel->AddSurface( surf );
-	staticModel->bounds = surf.geometry->bounds;
+	staticModel->m_bounds = surf.geometry->bounds;
 	
 	return staticModel;
 }
@@ -603,5 +597,5 @@ idRenderModelLiquid::Bounds
 idBounds idRenderModelLiquid::Bounds( const struct renderEntity_s* ent ) const
 {
 	// FIXME: need to do this better
-	return bounds;
+	return m_bounds;
 }

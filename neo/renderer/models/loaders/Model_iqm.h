@@ -29,11 +29,12 @@ GNU General Public License which accompanied the Elbony Pixel Source Code.
 #ifndef _MODEL_IQM_H_
 #define _MODEL_IQM_H_
 
+#include "renderer/models/internal/Model_skined.h"
+
 #define IQM_MESH_EXT			"iqm"
+#define IQE_MESH_EXT			"iqe"
 #define IQM_MAGIC "INTERQUAKEMODEL"
 #define IQM_VERSION 2
-
-#include "Model_local.h"
 
 /*
 ==================================================================
@@ -150,69 +151,108 @@ struct iqmbounds
 	Engine IQM structures
 ==================================================================
 */
-class btIqmMesh
+
+class btVertexWheight
 {
 public:
-	btIqmMesh(void) {};
-	~btIqmMesh(void) {};
+	btVertexWheight(void) : m_sorted(0) {};
+	~btVertexWheight(void) {};
+
+	void	addWeight(const unsigned int vertex, const float weight, const byte bone);
+	void	finalize(void);
+	uint32	getNumWheights(void) const;
+
+	const float		getWheightAt(const unsigned int p);
+	const byte		getIndexAt(const unsigned int p);
+	void			setVertWheight(byte *wheight[4], byte *index[4]);
 
 private:
-
+	unsigned int	m_vertex, m_sorted;;
+	idList<float>	m_weights;
+	idList<byte>	m_indexes;
 };
 
-class btIqmMesh
+
+class btIQMmodel
 {
 public:
-	btIqmMesh(void) {};
-	~btIqmMesh(void) {};
-private:
+	btIQMmodel(void);
+	~btIQMmodel(void);
 
+	void	reserveTriangles(unsigned int num);
+	void	reserveVertexes(unsigned int num);
+
+protected:
+	iqmheader*		iqmHdr;
+	idList<btVertexWheight>	weightInfo;
+	idList<uint32>			triangles;
+	idList<idVec3>			vertexPos;
+	idList<idVec2>			vertexUV;
+	idList<idVec3>			vertexNor;
+	idList<idVec3>			vertexTan;
+	//	idList<idVec4> normais;
+	//	idList<idVec3> normais;
 };
 
-class btIqmJoint : public btGameJoint
-{
-public:
-	btIqmJoint(void) {};
-	btIqmJoint(const idVec3 post, const idQuat orient, const idVec3 size);
-	~btIqmJoint(void) {};
 
-private:
-	idJointQuat		pose;
-	idJointMat		poseMat;
-};
+class btIqmMesh;
 
-class idRenderModelIQM : public idRenderModelStatic
+class idRenderModelIQM :
+	public btRenderModelSkined,
+	public btIQMmodel
 {
 public:
 	idRenderModelIQM(void);
 	~idRenderModelIQM(void);
 
 	virtual void				InitFromFile(const char* fileName);
-	virtual dynamicModel_t		IsDynamicModel(void) const;
-	virtual idBounds			Bounds(const struct renderEntity_s* ent) const;
+	virtual void				LoadModel(void);
+
+	bool						loadJoints(const byte *buff);
+	bool						loadVerterxArray(const byte *buff);
+	bool						loadMeshes(const byte *buff);
+
+#if 1
+	virtual bool				LoadBinaryModel(idFile* file, const ID_TIME_T sourceTimeStamp);
+	virtual void				WriteBinaryModel(idFile* file, ID_TIME_T* _timeStamp = NULL) const;
+	//model already loaded in binary mode
+	virtual bool				SupportsBinaryModel(void) { return false; }
+#endif
+
 	virtual void				Print(void) const;
 	virtual void				List(void) const;
 	virtual void				TouchData(void);
 	virtual void				PurgeModel(void);
-	virtual void				LoadModel(void);
 	virtual int					Memory(void) const;
+	
 	virtual idRenderModel* 		InstantiateDynamicModel(const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel);
-	virtual int					NumJoints(void) const;
-	virtual const btGameJoint* 	GetJoints(void) const;
-	virtual jointHandle_t		GetJointHandle(const char* name) const;
-	virtual const char* 		GetJointName(jointHandle_t handle) const;
-	virtual const idJointQuat* 	GetDefaultPose(void) const;
+
 	virtual int					NearestJoint(int surfaceNum, int a, int b, int c) const;
 
-	//tips: we can integrate a IQE loader, and here we put a IQM compiler
-	//virtual bool				SupportsBinaryModel(void);
-	//virtual bool				LoadBinaryModel(idFile* file, const ID_TIME_T sourceTimeStamp);
-	//virtual void				WriteBinaryModel(idFile* file, ID_TIME_T* _timeStamp = NULL) const;
+private:
+	friend class btIqmMesh;
+	
+	idStr									m_modelPath;
+};
+
+class btIqmMesh : public btRenderMeshSkined
+{
+public:
+	btIqmMesh(void) : btRenderMeshSkined() {};
+	virtual ~btIqmMesh(void) {};
+
+	//conver from IQM engine
+	void	setupMeshData(const idStr name, const idStr mtr, const iqmmesh mesh);
+
+	//gen the dinamic mesh
+	void	BuildTheInternalMesh(idRenderModelIQM* modelRef);
+
+	virtual void		Clear(void);
 
 private:
-	idStr									m_modelPath;
-	idList<btIqmMesh, TAG_MODEL>			m_meshes;
-	idList<btIqmJoint, TAG_MODEL>			m_joints;
+	uint32		m_firstMeshTris;
+	uint32		m_firstMeshVertexes;
+
 };
 
 #endif // !_MODEL_IQM_H_

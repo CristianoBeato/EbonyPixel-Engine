@@ -94,8 +94,8 @@ SURFACES
 ==============================================================================
 */
 
-#include "renderer/models/ModelDecal.h"
-#include "renderer/models/ModelOverlay.h"
+#include "renderer/models/internal/ModelDecal.h"
+#include "renderer/models/internal/ModelOverlay.h"
 #include "renderer/backEnd/Interaction.h"
 
 //Beato Begin: Foward definitions
@@ -1426,7 +1426,7 @@ struct deformInfo_t
 
 
 // if outputVertexes is not NULL, it will point to a newly allocated set of verts that includes the mirrored ones
-deformInfo_t* 		R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const int* indexes,
+deformInfo_t* 		R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const uint32* indexes,
 									   bool useUnsmoothedTangents );
 void				R_FreeDeformInfo( deformInfo_t* deformInfo );
 int					R_DeformInfoMemoryUsed( deformInfo_t* deformInfo );

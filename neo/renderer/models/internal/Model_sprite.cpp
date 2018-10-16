@@ -26,11 +26,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "renderer/tr_local.h"
-#include "Model_local.h"
+#include "Model_sprite.h"
 
 
 /*
@@ -43,20 +43,10 @@ static const char* sprite_SnapshotName = "_sprite_Snapshot_";
 
 /*
 ===============
-idRenderModelSprite::IsDynamicModel
-===============
-*/
-dynamicModel_t idRenderModelSprite::IsDynamicModel() const
-{
-	return DM_CONTINUOUS;
-}
-
-/*
-===============
 idRenderModelSprite::IsLoaded
 ===============
 */
-bool idRenderModelSprite::IsLoaded() const
+bool idRenderModelSprite::IsLoaded(void) const
 {
 	return true;
 }
@@ -68,7 +58,7 @@ idRenderModelSprite::InstantiateDynamicModel
 */
 idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct renderEntity_s* renderEntity, const viewDef_t* viewDef, idRenderModel* cachedModel )
 {
-	idRenderModelStatic* staticModel;
+	idRenderModelLocal* staticModel;
 	srfTriangles_t* tri;
 	modelSurface_t surf;
 	
@@ -87,10 +77,10 @@ idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct rende
 	if( cachedModel != NULL )
 	{
 	
-		assert( dynamic_cast<idRenderModelStatic*>( cachedModel ) != NULL );
+		assert( dynamic_cast<btRenderModelDinamic*>( cachedModel ) != NULL );
 		assert( idStr::Icmp( cachedModel->Name(), sprite_SnapshotName ) == 0 );
 		
-		staticModel = static_cast<idRenderModelStatic*>( cachedModel );
+		staticModel = static_cast<btRenderModelDinamic*>( cachedModel );
 		surf = *staticModel->Surface( 0 );
 		tri = surf.geometry;
 		
@@ -98,7 +88,7 @@ idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct rende
 	else
 	{
 	
-		staticModel = new( TAG_MODEL ) idRenderModelStatic;
+		staticModel = new( TAG_MODEL ) btRenderModelDinamic;
 		staticModel->InitEmpty( sprite_SnapshotName );
 		
 		tri = R_AllocStaticTriSurf();
@@ -179,7 +169,7 @@ idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct rende
 	
 	R_BoundTriSurf( tri );
 	
-	staticModel->bounds = tri->bounds;
+	staticModel->m_bounds = tri->bounds;
 	
 	return staticModel;
 }

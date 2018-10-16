@@ -40,10 +40,24 @@ If you have questions concerning this license or the applicable additional terms
 class idJointQuat
 {
 public:
+
+	idJointQuat(void)
+	{
+		q = idQuat(0.0f, 0.0f, 0.0f, 1.0f);
+		t = idVec3(0.0);
+	}
+
+	idJointQuat(idVec3 pos, idQuat orient) :
+		q(orient),
+		t(pos)
+	{
+	}
+
 	const float* 	ToFloatPtr() const
 	{
 		return q.ToFloatPtr();
 	}
+
 	float* 			ToFloatPtr()
 	{
 		return q.ToFloatPtr();

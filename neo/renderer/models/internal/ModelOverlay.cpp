@@ -28,11 +28,13 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "renderer/tr_local.h"
-#include "Model_local.h"
+#include "renderer/models/Model_local.h"
+#include "renderer/models/internal/Model_static.h"
+#include "renderer/models/internal/Model_skined.h"
 
 #include "idlib/geometry/DrawVert_intrinsics.h"
 
@@ -426,7 +428,7 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 		// RB: added check wether GPU skinning is available at all
 		if( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable )
 		{
-			R_OverlayPointCullSkinned( cullBits.Ptr(), texCoordS.Ptr(), texCoordT.Ptr(), localTextureAxis, tri->verts, tri->numVerts, tri->staticModelWithJoints->jointsInverted );
+			R_OverlayPointCullSkinned( cullBits.Ptr(), texCoordS.Ptr(), texCoordT.Ptr(), localTextureAxis, tri->verts, tri->numVerts, tri->staticModelWithJoints->m_jointsInverted );
 		}
 		else
 		{
@@ -669,19 +671,15 @@ idRenderModelOverlay::CreateOverlayDrawSurf
 drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* space, const idRenderModel* baseModel, unsigned int index )
 {
 	if( index < 0 || index >= numOverlayMaterials )
-	{
 		return NULL;
-	}
 	
 	// md5 models won't have any surfaces when r_showSkel is set
 	if( baseModel == NULL || baseModel->IsDefaultModel() || baseModel->NumSurfaces() == 0 )
-	{
 		return NULL;
-	}
 	
 	assert( baseModel->IsDynamicModel() == DM_STATIC );
 	
-	const idRenderModelStatic* staticModel = static_cast< const idRenderModelStatic* >( baseModel );
+	const idRenderModelLocal* renderModel = static_cast< const idRenderModelLocal* >( baseModel );
 	
 	const idMaterial* material = overlayMaterials[index];
 	
@@ -698,14 +696,23 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* spa
 	}
 	
 	if( maxVerts == 0 || maxIndexes == 0 )
-	{
 		return NULL;
-	}
 	
 	// create a new triangle surface in frame memory so it gets automatically disposed of
 	srfTriangles_t* newTri = ( srfTriangles_t* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
-	newTri->staticModelWithJoints = ( staticModel->jointsInverted != NULL ) ? const_cast< idRenderModelStatic* >( staticModel ) : NULL;	// allow GPU skinning
-	
+
+//Beato: this made need use skined models
+#if 0
+	newTri->staticModelWithJoints = ( renderModel->m_jointsInverted != NULL ) ? const_cast< idRenderModelStatic* >( renderModel ) : NULL;	// allow GPU skinning
+#else
+	if (static_cast<const btRenderModelSkined*>(renderModel)->m_jointsInverted != NULL)
+		//newTri->staticModelWithJoints = const_cast<idRenderModelStatic*>(renderModel);
+		newTri->staticModelWithJoints = (btRenderModelSkined*)renderModel;
+	else
+		newTri->staticModelWithJoints = NULL;
+#endif
+//
+
 	newTri->ambientCache = vertexCache.AllocVertex( NULL, ALIGN( maxVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 	newTri->indexCache = vertexCache.AllocIndex( NULL, ALIGN( maxIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
 	
@@ -722,36 +729,30 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* spa
 		if( overlay.numVerts == 0 )
 		{
 			if( i == firstOverlay )
-			{
 				firstOverlay++;
-			}
+
 			continue;
 		}
 		
 		if( overlay.material != material )
-		{
 			continue;
-		}
 		
 		// get the source model surface for this overlay surface
-		const modelSurface_t* baseSurf = ( overlay.surfaceNum < staticModel->NumSurfaces() ) ? staticModel->Surface( overlay.surfaceNum ) : NULL;
+		const modelSurface_t* baseSurf = ( overlay.surfaceNum < renderModel->NumSurfaces() ) ? renderModel->Surface( overlay.surfaceNum ) : NULL;
 		
 		// if the surface ids no longer match
 		if( baseSurf == NULL || baseSurf->id != overlay.surfaceId )
 		{
 			// find the surface with the correct id
-			if( staticModel->FindSurfaceWithId( overlay.surfaceId, overlay.surfaceNum ) )
-			{
-				baseSurf = staticModel->Surface( overlay.surfaceNum );
-			}
+			if( renderModel->FindSurfaceWithId( overlay.surfaceId, overlay.surfaceNum ) )
+				baseSurf = renderModel->Surface( overlay.surfaceNum );
 			else
 			{
 				// the surface with this id no longer exists
 				FreeOverlay( overlay );
 				if( i == firstOverlay )
-				{
 					firstOverlay++;
-				}
+				
 				continue;
 			}
 		}
@@ -764,9 +765,8 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* spa
 			common->Warning( "idRenderModelOverlay::CreateOverlayDrawSurf: overlay vertex out of range.  Model has probably changed since generating the overlay." );
 			FreeOverlay( overlay );
 			if( i == firstOverlay )
-			{
 				firstOverlay++;
-			}
+			
 			continue;
 		}
 		

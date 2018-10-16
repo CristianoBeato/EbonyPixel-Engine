@@ -26,12 +26,13 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-
+#include "Model_beam.h"
 #include "renderer/tr_local.h"
-#include "Model_local.h"
+#include "renderer/models/Model_local.h"
+#include "renderer/models/internal/Model_dinamic.h"
 
 /*
 
@@ -44,20 +45,10 @@ static const char* beam_SnapshotName = "_beam_Snapshot_";
 
 /*
 ===============
-idRenderModelBeam::IsDynamicModel
-===============
-*/
-dynamicModel_t idRenderModelBeam::IsDynamicModel() const
-{
-	return DM_CONTINUOUS;	// regenerate for every view
-}
-
-/*
-===============
 idRenderModelBeam::IsLoaded
 ===============
 */
-bool idRenderModelBeam::IsLoaded() const
+bool idRenderModelBeam::IsLoaded(void) const
 {
 	return true;	// don't ever need to load
 }
@@ -69,7 +60,7 @@ idRenderModelBeam::InstantiateDynamicModel
 */
 idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEntity_s* renderEntity, const viewDef_t* viewDef, idRenderModel* cachedModel )
 {
-	idRenderModelStatic* staticModel;
+	idRenderModelLocal* staticModel;
 	srfTriangles_t* tri;
 	modelSurface_t surf;
 	
@@ -88,10 +79,12 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	if( cachedModel != NULL )
 	{
 	
-		assert( dynamic_cast<idRenderModelStatic*>( cachedModel ) != NULL );
-		assert( idStr::Icmp( cachedModel->Name(), beam_SnapshotName ) == 0 );
-		
-		staticModel = static_cast<idRenderModelStatic*>( cachedModel );
+		//assert( dynamic_cast<idRenderModelStatic*>( cachedModel ) != NULL );
+		idassert(dynamic_cast<btRenderModelDinamic*>(cachedModel) != NULL);
+		//assert( idStr::Icmp( cachedModel->Name(), beam_SnapshotName ) == 0 );
+		idassert(idStr::Icmp(cachedModel->Name(), beam_SnapshotName) == 0);
+
+		staticModel = static_cast<btRenderModelDinamic*>( cachedModel );
 		surf = *staticModel->Surface( 0 );
 		tri = surf.geometry;
 		
@@ -99,7 +92,7 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	else
 	{
 	
-		staticModel = new( TAG_MODEL ) idRenderModelStatic;
+		staticModel = new( TAG_MODEL ) btRenderModelDinamic;
 		staticModel->InitEmpty( beam_SnapshotName );
 		
 		tri = R_AllocStaticTriSurf();
@@ -187,7 +180,7 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	
 	R_BoundTriSurf( tri );
 	
-	staticModel->bounds = tri->bounds;
+	staticModel->m_bounds = tri->bounds;
 	
 	return staticModel;
 }

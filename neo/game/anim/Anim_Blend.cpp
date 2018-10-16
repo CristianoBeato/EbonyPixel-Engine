@@ -30,8 +30,10 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "game/Game_local.h"
-#include "renderer/models/Model_md5.h"
-#include "renderer/models/Model_iqm.h"
+#include "renderer/models/Model_local.h"
+#include "renderer/models/internal/Model_skined.h"
+#include "renderer/models/loaders/Model_md5.h"
+#include "renderer/models/loaders/Model_iqm.h"
 
 static const char* channelNames[ ANIM_NumAnimChannels ] =
 {
@@ -2797,21 +2799,17 @@ idDeclModelDef::FindJoint
 */
 const jointInfo_t* idDeclModelDef::FindJoint( const char* name ) const
 {
-	int					i;
-	const btGameJoint*	joint;
-	
-	if( !modelHandle )
-	{
+	unsigned int i = 0;
+	if (!modelHandle)
 		return NULL;
-	}
-	
-	joint = modelHandle->GetJoints();
-	for( i = 0; i < joints.Num(); i++, joint++ )
+
+//Beato Begin
+	for (const btGameJoint joint : modelHandle->GetJoints())
 	{
-		if( !joint->name.Icmp( name ) )
-			return &joints[ i ];
+		if (!joint.Name().Icmp(name))
+			return &joints[i++];
 	}
-	
+//Beato End
 	return NULL;
 }
 
@@ -3251,7 +3249,7 @@ idDeclModelDef::Parse
 */
 bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
-	int					i;
+	unsigned int		i;
 	int					num;
 	idStr				filename;
 	idStr				extension;
@@ -3371,15 +3369,19 @@ bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBi
 			joints.SetNum( num );
 			jointParents.SetNum( num );
 			channelJoints[0].SetNum( num );
-			modelJoints = modelHandle->GetJoints();
-			modelJoint = modelJoints;
-			for( i = 0; i < num; i++, modelJoint++ )
+//Beato Begin
+//			modelJoints = modelHandle->GetJoints();
+//			modelJoint = modelJoints;
+//			for( i = 0; i < num; i++, modelJoint++ )
+			idList<btGameJoint>::const_iterator modelJoint = modelHandle->GetJoints().begin();
+			for (i = 0; i < num; i++, modelJoint++)
 			{
 				joints[i].channel = ANIMCHANNEL_ALL;
 				joints[i].num = static_cast<jointHandle_t>( i );
-				if( modelJoint->parent )
+				
+				if(modelJoint->Parent())
 				{
-					joints[i].parentNum = static_cast<jointHandle_t>( modelJoint->parent - modelJoints );
+					joints[i].parentNum = static_cast<jointHandle_t>(modelJoint->Parent() - modelJoints );
 				}
 				else
 				{
@@ -3389,6 +3391,7 @@ bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBi
 				channelJoints[0][i] = i;
 			}
 		}
+//Beato End
 		else if( token == "remove" )
 		{
 			// removes any anims whos name matches
@@ -3728,20 +3731,18 @@ idDeclModelDef::GetJointName
 */
 const char* idDeclModelDef::GetJointName( int jointHandle ) const
 {
-	const btGameJoint* joint;
+	btGameJoint joint;
 	
 	if( !modelHandle )
-	{
 		return NULL;
-	}
 	
 	if( ( jointHandle < 0 ) || ( jointHandle > joints.Num() ) )
-	{
 		gameLocal.Error( "idDeclModelDef::GetJointName : joint handle out of range" );
-	}
 	
-	joint = modelHandle->GetJoints();
-	return joint[ jointHandle ].name.c_str();
+	//get the joint from the list
+	joint = modelHandle->GetJoints().getAt(jointHandle);
+	//get the name of the current joint
+	return joint.Name().c_str();
 }
 
 /*
@@ -5523,9 +5524,7 @@ idAnimator::GetJointHandle
 jointHandle_t idAnimator::GetJointHandle( const char* name ) const
 {
 	if( !modelDef || !modelDef->ModelHandle() )
-	{
 		return INVALID_JOINT;
-	}
 	
 	return modelDef->ModelHandle()->GetJointHandle( name );
 }
@@ -6048,11 +6047,14 @@ void idGameEdit::ANIM_CreateAnimFrame( const idRenderModel* model, const idMD5An
 		joints[0].SetTranslation( joints[0].ToVec3() + offset );
 	
 	// transform the children
-	modelJoints = model->GetJoints();
+//Beato Begin
+//	modelJoints = model->GetJoints();
+	idList<btGameJoint> jointList = model->GetJoints();
 	for( i = 1; i < numJoints; i++ )
 	{
-		joints[i] *= joints[ modelJoints[i].parent - modelJoints ];
+		joints[i] *= joints[ modelJoints[i].Parent() - modelJoints ];
 	}
+//Beato End
 }
 
 /*
@@ -6075,15 +6077,12 @@ idRenderModel* idGameEdit::ANIM_CreateMeshForAnim( idRenderModel* model, const c
 	const idDeclModelDef*	modelDef;
 	
 	if( !model || model->IsDefaultModel() )
-	{
 		return NULL;
-	}
+	
 	
 	args = gameLocal.FindEntityDefDict( classname, false );
 	if( !args )
-	{
 		return NULL;
-	}
 	
 	memset( &ent, 0, sizeof( ent ) );
 	
@@ -6095,14 +6094,12 @@ idRenderModel* idGameEdit::ANIM_CreateMeshForAnim( idRenderModel* model, const c
 	{
 		animNum = modelDef->GetAnim( animname );
 		if( !animNum )
-		{
 			return NULL;
-		}
+		
 		anim = modelDef->GetAnim( animNum );
 		if( !anim )
-		{
 			return NULL;
-		}
+		
 		md5anim = anim->MD5Anim( 0 );
 		ent.customSkin = modelDef->GetDefaultSkin();
 		offset = modelDef->GetVisualOffset();
@@ -6112,24 +6109,20 @@ idRenderModel* idGameEdit::ANIM_CreateMeshForAnim( idRenderModel* model, const c
 		filename = animname;
 		filename.ExtractFileExtension( extension );
 		if( !extension.Length() )
-		{
 			animname = args->GetString( va( "anim %s", animname ) );
-		}
+		
 		
 		md5anim = animationLib.GetAnim( animname );
 		offset.Zero();
 	}
 	
 	if( !md5anim )
-	{
 		return NULL;
-	}
 	
 	temp = args->GetString( "skin", "" );
 	if( temp[ 0 ] )
-	{
 		ent.customSkin = declManager->FindSkin( temp );
-	}
+	
 	
 	ent.numJoints = model->NumJoints();
 	ent.joints = ( idJointMat* )Mem_Alloc16( SIMD_ROUND_JOINTS( ent.numJoints ) * sizeof( *ent.joints ), TAG_JOINTMAT );

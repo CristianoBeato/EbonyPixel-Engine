@@ -29,7 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MODEL_MD5_H__
 #define __MODEL_MD5_H__
 
-#include "Model_local.h"
+#include "renderer/models/internal/Model_skined.h"
 
 // shared between the renderer, game, and Maya export DLL
 #define MD5_VERSION_STRING		"MD5Version"
@@ -53,77 +53,44 @@ MD5 animated model
 
 ===============================================================================
 */
-
-class idMD5Mesh
+class idMD5Mesh : public btRenderMeshSkined
 {
 	friend class				idRenderModelMD5;
-
 public:
-	idMD5Mesh();
-	~idMD5Mesh();
+	idMD5Mesh(void);
+	~idMD5Mesh(void);
 
+	size_t						getMeshUsedMemory(void);
 	void						ParseMesh(idLexer& parser, int numJoints, const idJointMat* joints);
-
-	int							NumVerts() const
-	{
-		return numVerts;
-	}
-	int							NumTris() const
-	{
-		return numTris;
-	}
-
-	void						UpdateSurface(const struct renderEntity_s* ent, const idJointMat* joints,
-												const	idJointMat* entJointsInverted, modelSurface_t* surf);
-	void						CalculateBounds(const idJointMat* entJoints, idBounds& bounds) const;
+	void						LoadBinaryMesh(idFile* file);
+	void						WriteBinaryMesh(idFile* file);
 	int							NearestJoint(int a, int b, int c) const;
+	virtual void				Clear(void);
 
 private:
-	const idMaterial* 			shader;				// material applied to mesh
-	int							numVerts;			// number of vertices
-	int							numTris;			// number of triangles
-	byte* 						meshJoints;			// the joints used by this mesh
-	int							numMeshJoints;		// number of mesh joints
-	float						maxJointVertDist;	// maximum distance a vertex is separated from a joint
-	deformInfo_t* 				deformInfo;			// used to create srfTriangles_t from base frames and new vertexes
 	int							surfaceNum;			// number of the static surface created for this mesh
 };
 
-class idRenderModelMD5 : public idRenderModelStatic
+class idRenderModelMD5 : public btRenderModelSkined
 {
 public:
 	virtual void				InitFromFile(const char* fileName);
+	virtual void				LoadModel(void);
 	virtual bool				LoadBinaryModel(idFile* file, const ID_TIME_T sourceTimeStamp);
 	virtual void				WriteBinaryModel(idFile* file, ID_TIME_T* _timeStamp = NULL) const;
-	virtual dynamicModel_t		IsDynamicModel(void) const;
-	virtual idBounds			Bounds(const struct renderEntity_s* ent) const;
-	virtual void				Print(void) const;
+
 	virtual void				List() const;
 	virtual void				TouchData();
 	virtual void				PurgeModel();
-	virtual void				LoadModel();
 	virtual int					Memory() const;
-	virtual idRenderModel* 		InstantiateDynamicModel(const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel);
-	virtual int					NumJoints(void) const;
-	virtual const idMD5Joint* 	GetJoints() const;
-	virtual jointHandle_t		GetJointHandle(const char* name) const;
-	virtual const char* 		GetJointName(jointHandle_t handle) const;
-	virtual const idJointQuat* 	GetDefaultPose() const;
+	
 	virtual int					NearestJoint(int surfaceNum, int a, int b, int c) const;
 
-	virtual bool				SupportsBinaryModel()
-	{
-		return true;
-	}
+	//
+	virtual bool				SupportsBinaryModel(void){ return true; }
 
 private:
-	idList<idMD5Mesh, TAG_MODEL>	meshes;
-	idList<idMD5Joint, TAG_MODEL>	joints;
-	idList<idJointQuat, TAG_MODEL>	defaultPose;
-	idList<idJointMat, TAG_MODEL>	invertedDefaultPose;
-
-	void						DrawJoints(const renderEntity_t* ent, const viewDef_t* view) const;
-	void						ParseJoint(idLexer& parser, idMD5Joint* joint, idJointQuat* defaultPose);
+	void						ParseJoint(idLexer& parser, btGameJoint* joint, idJointQuat* defaultPose);
 };
 
 #endif /* !__MODEL_MD5_H__ */

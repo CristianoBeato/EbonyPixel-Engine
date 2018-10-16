@@ -29,440 +29,101 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MODEL_LOCAL_H__
 #define __MODEL_LOCAL_H__
 
+class idRenderModel;
+struct srfTriangles_t;
+struct modelSurface_t;
+
+typedef struct matchVert_s
+{
+	struct matchVert_s*	next;
+	int		v, tv;
+	byte	color[4];
+	idVec3	normal;
+} matchVert_t;
+
 /*
 ===============================================================================
-
-	Static model
-
+	render model local
+	Render model Base class
 ===============================================================================
 */
-
-class idRenderModel;
-class idJointMat;
-struct modelSurface_t;
-struct deformInfo_t;
-struct srfTriangles_t;
-class ColladaParser; // RB: Collada support
-
-class idRenderModelStatic : public idRenderModel
+class idRenderModelLocal : public idRenderModel
 {
 public:
 	// the inherited public interface
 	static idRenderModel* 		Alloc(void);
+
+	idRenderModelLocal(void);
+	virtual						~idRenderModelLocal(void);
+
+	virtual void				PartialInitFromFile(const char* fileName);
+	virtual void				PurgeModel(void);
+	virtual void				Reset(void) {};
+	virtual void				LoadModel(void);
+	virtual bool				IsLoaded(void);
+	virtual void				SetLevelLoadReferenced(bool referenced);
+	virtual bool				IsLevelLoadReferenced(void);
+	virtual void				TouchData(void);
+	virtual void				InitEmpty(const char* name);
+	virtual void				AddSurface(modelSurface_t surface);
+	virtual void				FinishSurfaces(void);
+	virtual void				FreeVertexCache(void);
+	virtual const char* 		Name(void) const;
+	virtual void				Print(void) const;
+	virtual void				List(void) const;
+	virtual int					Memory(void) const;
+	virtual ID_TIME_T			Timestamp(void) const;
+	virtual int					NumSurfaces(void) const;
+	virtual int					NumBaseSurfaces(void) const;
+	virtual const modelSurface_t* Surface(int surfaceNum) const;
+	virtual srfTriangles_t* 	AllocSurfaceTriangles(int numVerts, int numIndexes) const;
+	virtual void				FreeSurfaceTriangles(srfTriangles_t* tris) const;
+	virtual bool				IsStaticWorldModel(void) const;
+	virtual bool				IsDefaultModel(void) const;
+	virtual bool				IsReloadable(void) const;
 	
-	idRenderModelStatic();
-	virtual						~idRenderModelStatic();
-	
-	virtual void				InitFromFile( const char* fileName );
-	virtual bool				LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp );
-	virtual void				WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp = NULL ) const;
-	virtual bool				SupportsBinaryModel()
-	{
-		return true;
-	}
-	
-	// RB begin
-	virtual void				ExportOBJ( idFile* objFile, idFile* mtlFile, ID_TIME_T* _timeStamp = NULL ) const;
-	// RB end
-	
-	virtual void				PartialInitFromFile( const char* fileName );
-	virtual void				PurgeModel();
-	virtual void				Reset() {};
-	virtual void				LoadModel();
-	virtual bool				IsLoaded();
-	virtual void				SetLevelLoadReferenced( bool referenced );
-	virtual bool				IsLevelLoadReferenced();
-	virtual void				TouchData();
-	virtual void				InitEmpty( const char* name );
-	virtual void				AddSurface( modelSurface_t surface );
-	virtual void				FinishSurfaces();
-	virtual void				FreeVertexCache();
-	virtual const char* 		Name() const;
-	virtual void				Print() const;
-	virtual void				List() const;
-	virtual int					Memory() const;
-	virtual ID_TIME_T				Timestamp() const;
-	virtual int					NumSurfaces() const;
-	virtual int					NumBaseSurfaces() const;
-	virtual const modelSurface_t* Surface( int surfaceNum ) const;
-	virtual srfTriangles_t* 	AllocSurfaceTriangles( int numVerts, int numIndexes ) const;
-	virtual void				FreeSurfaceTriangles( srfTriangles_t* tris ) const;
-	virtual bool				IsStaticWorldModel() const;
-	virtual dynamicModel_t		IsDynamicModel() const;
-	virtual bool				IsDefaultModel() const;
-	virtual bool				IsReloadable() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
-	virtual int					NumJoints() const;
-	virtual const btGameJoint* 	GetJoints() const;
-	virtual jointHandle_t		GetJointHandle( const char* name ) const;
-	virtual const char* 		GetJointName( jointHandle_t handle ) const;
-	virtual const idJointQuat* 	GetDefaultPose() const;
-	virtual int					NearestJoint( int surfaceNum, int a, int b, int c ) const;
-	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
-	virtual void				ReadFromDemoFile( class idDemoFile* f );
-	virtual void				WriteToDemoFile( class idDemoFile* f );
-	virtual float				DepthHack() const;
-	
-	virtual bool				ModelHasDrawingSurfaces() const
-	{
-		return hasDrawingSurfaces;
-	};
-	virtual bool				ModelHasInteractingSurfaces() const
-	{
-		return hasInteractingSurfaces;
-	};
-	virtual bool				ModelHasShadowCastingSurfaces() const
-	{
-		return hasShadowCastingSurfaces;
-	};
-	
+	virtual idBounds			Bounds(const struct renderEntity_s* ent) const;
+	virtual void				ReadFromDemoFile(class idDemoFile* f);
+	virtual void				WriteToDemoFile(class idDemoFile* f);
+	virtual float				DepthHack(void) const;
+
+	virtual bool				ModelHasDrawingSurfaces(void) const;
+	virtual bool				ModelHasInteractingSurfaces(void) const;
+	virtual bool				ModelHasShadowCastingSurfaces(void) const;
+
 	void						MakeDefaultModel();
-	
-	bool						LoadASE( const char* fileName );
-	bool						LoadDAE( const char* fileName ); // RB
-	bool						LoadLWO( const char* fileName );
-	bool						LoadMA( const char* filename );
-	
-	bool						ConvertDAEToModelSurfaces( const ColladaParser* dae ); // RB
-	bool						ConvertASEToModelSurfaces( const struct aseModel_s* ase );
-	bool						ConvertLWOToModelSurfaces( const struct st_lwObject* lwo );
-	bool						ConvertMAToModelSurfaces( const struct maModel_s* ma );
-	
-	struct aseModel_s* 			ConvertLWOToASE( const struct st_lwObject* obj, const char* fileName );
-	
-	bool						DeleteSurfaceWithId( int id );
+
+	bool						DeleteSurfaceWithId(int id);
 	void						DeleteSurfacesWithNegativeId();
-	bool						FindSurfaceWithId( int id, int& surfaceNum ) const;
-	
+	bool						FindSurfaceWithId(int id, int& surfaceNum) const;
+
 public:
-	idList<modelSurface_t, TAG_MODEL>	surfaces;
-	idBounds					bounds;
-	int							overlaysAdded;
-	
-	// when an md5 is instantiated, the inverted joints array is stored to allow GPU skinning
-	int							numInvertedJoints;
-	idJointMat* 				jointsInverted;
-	vertCacheHandle_t			jointsInvertedBuffer;
-	
+	idList<modelSurface_t, TAG_MODEL>	m_surfaces;
+	idBounds					m_bounds;
+	int							m_overlaysAdded;
+
 protected:
-	int							lastModifiedFrame;
-	int							lastArchivedFrame;
-	
-	idStr						name;
-	bool						isStaticWorldModel;
-	bool						defaulted;
-	bool						purged;					// eventually we will have dynamic reloading
-	bool						fastLoad;				// don't generate tangents and shadow data
-	bool						reloadable;				// if not, reloadModels won't check timestamp
-	bool						levelLoadReferenced;	// for determining if it needs to be freed
-	bool						hasDrawingSurfaces;
-	bool						hasInteractingSurfaces;
-	bool						hasShadowCastingSurfaces;
-	ID_TIME_T					timeStamp;
-	
-	static idCVar				r_mergeModelSurfaces;	// combine model surfaces with the same material
-	static idCVar				r_slopVertex;			// merge xyz coordinates this far apart
-	static idCVar				r_slopTexCoord;			// merge texture coordinates this far apart
-	static idCVar				r_slopNormal;			// merge normals that dot less than this
-};
+	static void AddCubeFace(srfTriangles_t * tri, idVec3 v1, idVec3 v2, idVec3 v3, idVec3 v4);
 
-/*
-===============================================================================
+	int							m_lastModifiedFrame;
+	int							m_lastArchivedFrame;
 
-	MD3 animated model
+	idStr						m_name;
+	bool						m_isStaticWorldModel;
+	bool						m_defaulted;
+	bool						m_purged;					// eventually we will have dynamic reloading
+	bool						m_fastLoad;					// don't generate tangents and shadow data
+	bool						m_reloadable;				// if not, reloadModels won't check timestamp
+	bool						m_levelLoadReferenced;		// for determining if it needs to be freed
+	bool						m_hasDrawingSurfaces;
+	bool						m_hasInteractingSurfaces;
+	bool						m_hasShadowCastingSurfaces;
+	ID_TIME_T					m_timeStamp;
 
-===============================================================================
-*/
-
-struct md3Header_s;
-struct md3Surface_s;
-
-class idRenderModelMD3 : public idRenderModelStatic
-{
-public:
-	virtual void				InitFromFile( const char* fileName );
-	virtual bool				SupportsBinaryModel()
-	{
-		return false;
-	}
-	virtual dynamicModel_t		IsDynamicModel() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
-	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
-	
-private:
-	int							index;			// model = tr.models[model->index]
-	int							dataSize;		// just for listing purposes
-	struct md3Header_s* 		md3;			// only if type == MOD_MESH
-	int							numLods;
-	
-	void						LerpMeshVertexes( srfTriangles_t* tri, const struct md3Surface_s* surf, const float backlerp, const int frame, const int oldframe ) const;
-};
-
-/*
-===============================================================================
-
-	Liquid model
-
-===============================================================================
-*/
-
-class idRenderModelLiquid : public idRenderModelStatic
-{
-public:
-	idRenderModelLiquid();
-	
-	virtual void				InitFromFile( const char* fileName );
-	virtual bool				SupportsBinaryModel()
-	{
-		return false;
-	}
-	virtual dynamicModel_t		IsDynamicModel() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
-	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
-	
-	virtual void				Reset();
-	void						IntersectBounds( const idBounds& bounds, float displacement );
-	
-private:
-	modelSurface_t				GenerateSurface( float lerp );
-	void						WaterDrop( int x, int y, float* page );
-	void						Update();
-	
-	int							verts_x;
-	int							verts_y;
-	float						scale_x;
-	float						scale_y;
-	int							time;
-	int							liquid_type;
-	int							update_tics;
-	int							seed;
-	
-	idRandom					random;
-	
-	const idMaterial* 			shader;
-	deformInfo_t* 				deformInfo;		// used to create srfTriangles_t from base frames
-	// and new vertexes
-	
-	float						density;
-	float						drop_height;
-	int							drop_radius;
-	float						drop_delay;
-	
-	idList<float, TAG_MODEL>	pages;
-	float* 						page1;
-	float* 						page2;
-	
-	idList<idDrawVert, TAG_MODEL>	verts;
-	
-	int							nextDropTime;
-	
-};
-
-/*
-===============================================================================
-
-	PRT model
-
-===============================================================================
-*/
-
-class idRenderModelPrt : public idRenderModelStatic
-{
-public:
-	idRenderModelPrt();
-	
-	virtual void				InitFromFile( const char* fileName );
-	virtual bool				SupportsBinaryModel()
-	{
-		return false;
-	}
-	virtual void				TouchData();
-	virtual dynamicModel_t		IsDynamicModel() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
-	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
-	virtual float				DepthHack() const;
-	virtual int					Memory() const;
-	
-	// with the addModels2 arrangement we could have light accepting and
-	// shadowing dynamic models, but the original game never did
-	virtual bool				ModelHasDrawingSurfaces() const
-	{
-		return true;
-	};
-	virtual bool				ModelHasInteractingSurfaces() const
-	{
-		return false;
-	};
-	virtual bool				ModelHasShadowCastingSurfaces() const
-	{
-		return false;
-	};
-	
-private:
-	const idDeclParticle* 		particleSystem;
-};
-
-/*
-===============================================================================
-
-	Beam model
-
-===============================================================================
-*/
-
-class idRenderModelBeam : public idRenderModelStatic
-{
-public:
-	virtual dynamicModel_t		IsDynamicModel() const;
-	virtual bool				SupportsBinaryModel()
-	{
-		return false;
-	}
-	virtual bool				IsLoaded() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
-	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
-	
-	// with the addModels2 arrangement we could have light accepting and
-	// shadowing dynamic models, but the original game never did
-	virtual bool				ModelHasDrawingSurfaces() const
-	{
-		return true;
-	};
-	virtual bool				ModelHasInteractingSurfaces() const
-	{
-		return false;
-	};
-	virtual bool				ModelHasShadowCastingSurfaces() const
-	{
-		return false;
-	};
-};
-
-/*
-===============================================================================
-
-	Beam model
-
-===============================================================================
-*/
-#define MAX_TRAIL_PTS	20
-
-struct Trail_t
-{
-	int							lastUpdateTime;
-	int							duration;
-	
-	idVec3						pts[MAX_TRAIL_PTS];
-	int							numPoints;
-};
-
-class idRenderModelTrail : public idRenderModelStatic
-{
-	idList<Trail_t, TAG_MODEL>	trails;
-	int							numActive;
-	idBounds					trailBounds;
-	
-public:
-	idRenderModelTrail();
-	
-	virtual dynamicModel_t		IsDynamicModel() const;
-	virtual bool				SupportsBinaryModel()
-	{
-		return false;
-	}
-	virtual bool				IsLoaded() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
-	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
-	
-	// with the addModels2 arrangement we could have light accepting and
-	// shadowing dynamic models, but the original game never did
-	virtual bool				ModelHasDrawingSurfaces() const
-	{
-		return true;
-	};
-	virtual bool				ModelHasInteractingSurfaces() const
-	{
-		return false;
-	};
-	virtual bool				ModelHasShadowCastingSurfaces() const
-	{
-		return false;
-	};
-	
-	int							NewTrail( idVec3 pt, int duration );
-	void						UpdateTrail( int index, idVec3 pt );
-	void						DrawTrail( int index, const struct renderEntity_s* ent, srfTriangles_t* tri, float globalAlpha );
-};
-
-/*
-===============================================================================
-
-	Lightning model
-
-===============================================================================
-*/
-
-class idRenderModelLightning : public idRenderModelStatic
-{
-public:
-	virtual dynamicModel_t		IsDynamicModel() const;
-	virtual bool				SupportsBinaryModel()
-	{
-		return false;
-	}
-	virtual bool				IsLoaded() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
-	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
-	
-	// with the addModels2 arrangement we could have light accepting and
-	// shadowing dynamic models, but the original game never did
-	virtual bool				ModelHasDrawingSurfaces() const
-	{
-		return true;
-	};
-	virtual bool				ModelHasInteractingSurfaces() const
-	{
-		return false;
-	};
-	virtual bool				ModelHasShadowCastingSurfaces() const
-	{
-		return false;
-	};
-};
-
-/*
-================================================================================
-
-	idRenderModelSprite
-
-================================================================================
-*/
-class idRenderModelSprite : public idRenderModelStatic
-{
-public:
-	virtual	dynamicModel_t		IsDynamicModel() const;
-	virtual bool				SupportsBinaryModel()
-	{
-		return false;
-	}
-	virtual	bool				IsLoaded() const;
-	virtual	idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
-	virtual	idBounds			Bounds( const struct renderEntity_s* ent ) const;
-	
-	// with the addModels2 arrangement we could have light accepting and
-	// shadowing dynamic models, but the original game never did
-	virtual bool				ModelHasDrawingSurfaces() const
-	{
-		return true;
-	};
-	virtual bool				ModelHasInteractingSurfaces() const
-	{
-		return false;
-	};
-	virtual bool				ModelHasShadowCastingSurfaces() const
-	{
-		return false;
-	};
+	static idCVar				r_mergeModelSurfaces;		// combine model surfaces with the same material
+	static idCVar				r_slopVertex;				// merge xyz coordinates this far apart
+	static idCVar				r_slopTexCoord;				// merge texture coordinates this far apart
+	static idCVar				r_slopNormal;				// merge normals that dot less than this
 };
 
 #endif /* !__MODEL_LOCAL_H__ */

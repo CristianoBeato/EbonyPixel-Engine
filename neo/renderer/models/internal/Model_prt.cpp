@@ -26,11 +26,12 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "renderer/tr_local.h"
-#include "Model_local.h"
+#include "renderer/models/Model_local.h"
+#include "Model_prt.h"
 
 static const char* parametricParticle_SnapshotName = "_ParametricParticle_Snapshot_";
 
@@ -39,7 +40,7 @@ static const char* parametricParticle_SnapshotName = "_ParametricParticle_Snapsh
 idRenderModelPrt::idRenderModelPrt
 ====================
 */
-idRenderModelPrt::idRenderModelPrt()
+idRenderModelPrt::idRenderModelPrt(void) : btRenderModelDinamic()
 {
 	particleSystem = NULL;
 }
@@ -51,7 +52,7 @@ idRenderModelPrt::InitFromFile
 */
 void idRenderModelPrt::InitFromFile( const char* fileName )
 {
-	name = fileName;
+	m_name = fileName;
 	particleSystem = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, fileName ) );
 }
 
@@ -60,10 +61,10 @@ void idRenderModelPrt::InitFromFile( const char* fileName )
 idRenderModelPrt::TouchData
 =================
 */
-void idRenderModelPrt::TouchData()
+void idRenderModelPrt::TouchData(void)
 {
 	// Ensure our particle system is added to the list of referenced decls
-	particleSystem = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, name ) );
+	particleSystem = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, m_name ) );
 }
 
 /*
@@ -73,7 +74,7 @@ idRenderModelPrt::InstantiateDynamicModel
 */
 idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEntity_s* renderEntity, const viewDef_t* viewDef, idRenderModel* cachedModel )
 {
-	idRenderModelStatic*	staticModel;
+	idRenderModelLocal*	staticModel;
 	
 	if( cachedModel && !r_useCachedDynamicModels.GetBool() )
 	{
@@ -105,16 +106,16 @@ idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEnt
 	if( cachedModel != NULL )
 	{
 	
-		assert( dynamic_cast<idRenderModelStatic*>( cachedModel ) != NULL );
+		assert( dynamic_cast<btRenderModelDinamic*>( cachedModel ) != NULL );
 		assert( idStr::Icmp( cachedModel->Name(), parametricParticle_SnapshotName ) == 0 );
 		
-		staticModel = static_cast<idRenderModelStatic*>( cachedModel );
+		staticModel = static_cast<btRenderModelDinamic*>( cachedModel );
 		
 	}
 	else
 	{
 	
-		staticModel = new( TAG_MODEL ) idRenderModelStatic;
+		staticModel = new( TAG_MODEL ) btRenderModelDinamic;
 		staticModel->InitEmpty( parametricParticle_SnapshotName );
 	}
 	
@@ -159,12 +160,12 @@ idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEnt
 		
 		if( staticModel->FindSurfaceWithId( stageNum, surfaceNum ) )
 		{
-			surf = &staticModel->surfaces[surfaceNum];
+			surf = &staticModel->m_surfaces[surfaceNum];
 			R_FreeStaticTriSurfVertexCaches( surf->geometry );
 		}
 		else
 		{
-			surf = &staticModel->surfaces.Alloc();
+			surf = &staticModel->m_surfaces.Alloc();
 			surf->id = stageNum;
 			surf->shader = stage->material;
 			surf->geometry = R_AllocStaticTriSurf();
@@ -267,16 +268,6 @@ idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEnt
 
 /*
 ====================
-idRenderModelPrt::IsDynamicModel
-====================
-*/
-dynamicModel_t idRenderModelPrt::IsDynamicModel() const
-{
-	return DM_CONTINUOUS;
-}
-
-/*
-====================
 idRenderModelPrt::Bounds
 ====================
 */
@@ -290,7 +281,7 @@ idBounds idRenderModelPrt::Bounds( const struct renderEntity_s* ent ) const
 idRenderModelPrt::DepthHack
 ====================
 */
-float idRenderModelPrt::DepthHack() const
+float idRenderModelPrt::DepthHack(void) const
 {
 	return particleSystem->depthHack;
 }
@@ -300,11 +291,11 @@ float idRenderModelPrt::DepthHack() const
 idRenderModelPrt::Memory
 ====================
 */
-int idRenderModelPrt::Memory() const
+int idRenderModelPrt::Memory(void) const
 {
 	int total = 0;
 	
-	total += idRenderModelStatic::Memory();
+	total += idRenderModelLocal::Memory();
 	
 	if( particleSystem )
 	{

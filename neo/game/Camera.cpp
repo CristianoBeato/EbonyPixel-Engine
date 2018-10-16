@@ -30,7 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "Game_local.h"
-#include "renderer/models/Model_md5.h"
+#include "renderer/models/loaders/Model_md5.h"
 
 /*
 ===============================================================================

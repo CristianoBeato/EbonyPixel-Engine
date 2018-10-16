@@ -27,10 +27,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "renderer/tr_local.h"
+#include "renderer/models/internal/Model_skined.h"
 #include "renderer/models/Model_local.h"
 
 /*
@@ -69,7 +70,7 @@ void R_SurfaceToTextureAxis( const srfTriangles_t* tri, idVec3& origin, idVec3 a
 	// determine the world S and T vectors from the first drawSurf triangle
 	
 	// RB: added check wether GPU skinning is available at all
-	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->jointsInverted : NULL;
+	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->m_jointsInverted : NULL;
 	// RB end
 	
 	const idVec3 aXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[ tri->indexes[0] ], joints );

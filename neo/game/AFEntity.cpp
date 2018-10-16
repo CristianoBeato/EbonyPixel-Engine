@@ -30,7 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "Game_local.h"
-#include "renderer/models/Model_md5.h"
+#include "renderer/models/internal/Model_skined.h"
+//#include "renderer/models/Model_md5.h"
 
 /*
 ===============================================================================
@@ -3299,7 +3300,10 @@ GetJointTransform
 typedef struct
 {
 	renderEntity_t* ent;
-	const btGameJoint* joints;
+//Beato Begin
+	//const btGameJoint* joints;
+	idList<btGameJoint> joints;
+//Beato End
 } jointTransformData_t;
 
 static bool GetJointTransform( void* model, const idJointMat* frame, const char* jointName, idVec3& origin, idMat3& axis )
@@ -3309,15 +3313,14 @@ static bool GetJointTransform( void* model, const idJointMat* frame, const char*
 	
 	for( i = 0; i < data->ent->numJoints; i++ )
 	{
-		if( data->joints[i].name.Icmp( jointName ) == 0 )
-		{
+//Beato Begin
+		if( data->joints[i].Name().Icmp( jointName ) == 0 )
 			break;
-		}
+//Beato End
 	}
 	if( i >= data->ent->numJoints )
-	{
 		return false;
-	}
+
 	origin = frame[i].ToVec3();
 	axis = frame[i].ToMat3();
 	return true;
@@ -3366,8 +3369,9 @@ idRenderModel* idGameEdit::AF_CreateMesh( const idDict& args, idVec3& meshOrigin
 	const idMD5Anim* MD5anim = NULL;
 
 	int numModelJoints;
-	const btGameJoint* modelJoint = NULL;
-	const btGameJoint* modelJoints = NULL;
+	//const btGameJoint* modelJoint = NULL;
+	//const btGameJoint* modelJoints = NULL;
+	idList<btGameJoint> modelJoints;
 
 	idJointMat* originalJoints = NULL;
 	int parentNum;
@@ -3383,23 +3387,17 @@ idRenderModel* idGameEdit::AF_CreateMesh( const idDict& args, idVec3& meshOrigin
 	afName = GetArgString( args, defArgs, "articulatedFigure" );
 	af = static_cast<const idDeclAF*>( declManager->FindType( DECL_AF, afName ) );
 	if( !af )
-	{
 		return NULL;
-	}
 	
 	// get the skined model
 	modelName = GetArgString( args, defArgs, "model" );
 	modelDef = static_cast< const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, modelName, false ) );
 	if( !modelDef )
-	{
 		return NULL;
-	}
 	
 	// make sure model hasn't been purged
 	if( modelDef->ModelHandle() && !modelDef->ModelHandle()->IsLoaded() )
-	{
 		modelDef->ModelHandle()->LoadModel();
-	}
 	
 	// get the animate model
 	skinedModel = modelDef->ModelHandle();
@@ -3409,26 +3407,24 @@ idRenderModel* idGameEdit::AF_CreateMesh( const idDict& args, idVec3& meshOrigin
 	// get the articulated figure pose anim
 	int animNum = modelDef->GetAnim( "af_pose" );
 	if( !animNum )
-	{
 		return NULL;
-	}
+
 	const idAnim* anim = modelDef->GetAnim( animNum );
 	if( !anim )
-	{
 		return NULL;
-	}
+
 	MD5anim = anim->MD5Anim( 0 );
 
 	modelJoints = skinedModel->GetJoints();
 	numModelJoints = skinedModel->NumJoints();
-
 
 	// setup a render entity
 	memset( &ent, 0, sizeof( ent ) );
 	ent.customSkin = modelDef->GetSkin();
 	ent.bounds.Clear();
 	ent.numJoints = numModelJoints;
-	ent.joints = ( idJointMat* )_alloca16( ent.numJoints * sizeof( *ent.joints ) );
+
+	//ent.joints = ( idJointMat* )_alloca16( ent.numJoints * sizeof( *ent.joints ) );
 	
 	// create animation from of the af_pose
 	ANIM_CreateAnimFrame(skinedModel, MD5anim, ent.numJoints, ent.joints, 1, modelDef->GetVisualOffset(), false );
@@ -3441,7 +3437,7 @@ idRenderModel* idGameEdit::AF_CreateMesh( const idDict& args, idVec3& meshOrigin
 	
 	// finish the AF positions
 	data.ent = &ent;
-	data.joints = modelJoints;
+	data.joints = static_cast<idList<btGameJoint>>(modelJoints);
 	af->Finish( GetJointTransform, ent.joints, &data );
 	
 	// get the initial origin and axis for each AF body
@@ -3475,14 +3471,12 @@ idRenderModel* idGameEdit::AF_CreateMesh( const idDict& args, idVec3& meshOrigin
 		{
 			fb = af->bodies[i];
 			if( fb->name.Icmp( name ) == 0 )
-			{
 				break;
-			}
 		}
+
 		if( i >= af->bodies.Num() )
-		{
 			continue;
-		}
+
 		sscanf( arg->GetValue(), "%f %f %f %f %f %f", &origin.x, &origin.y, &origin.z, &angles.pitch, &angles.yaw, &angles.roll );
 		
 		if( fb != NULL && fb->jointName.Icmp( "origin" ) == 0 )
@@ -3522,7 +3516,7 @@ idRenderModel* idGameEdit::AF_CreateMesh( const idDict& args, idVec3& meshOrigin
 		
 		for( jointNum = 0; jointNum < numModelJoints; jointNum++ )
 		{
-			if( modelJoints[jointNum].name.Icmp( fb->jointName ) == 0 )
+			if( modelJoints[jointNum].Name().Icmp( fb->jointName ) == 0 )
 				break;
 		}
 		
@@ -3536,11 +3530,12 @@ idRenderModel* idGameEdit::AF_CreateMesh( const idDict& args, idVec3& meshOrigin
 	}
 	
 	// apply joint modifications to the skeleton
-	modelJoint = modelJoints + 1;
+	//modelJoint = modelJoints + 1;
+	idList<btGameJoint>::iterator modelJoint = modelJoints.begin();
 	for( i = 1; i < numModelJoints; i++, modelJoint++ )
 	{
-	
-		parentNum = modelJoint->parent - modelJoints;
+		//parentNum = modelJoint->parent - modelJoints;
+		parentNum = modelJoint->getParentId();
 		idMat3 parentAxis = originalJoints[ parentNum ].ToMat3();
 		idMat3 localm = originalJoints[i].ToMat3() * parentAxis.Transpose();
 		idVec3 localt = ( originalJoints[i].ToVec3() - originalJoints[ parentNum ].ToVec3() ) * parentAxis.Transpose();

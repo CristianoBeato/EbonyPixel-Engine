@@ -96,6 +96,7 @@ const int MAX_EXPRESSION_REGISTERS = 4096;
 #include "renderer/BufferObject.h"
 #include "renderer/VertexCache.h"
 #include "renderer/models/Model.h"
+#include "renderer/models/Model_local.h"
 #include "renderer/models/ModelManager.h"
 #include "renderer/RenderSystem.h"
 #include "renderer/RenderWorld/RenderWorld.h"

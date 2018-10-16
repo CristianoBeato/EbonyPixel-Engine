@@ -27,11 +27,12 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "renderer/tr_local.h"
 #include "renderer/models/Model_local.h"
+#include "renderer/models/internal/Model_skined.h"
 
 /*
 ==========================================================================================
@@ -121,7 +122,7 @@ bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds )
 	ndcBounds.Clear();
 	
 	// RB: added check wether GPU skinning is available at all
-	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->jointsInverted : NULL;
+	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->m_jointsInverted : NULL;
 	// RB end
 	
 	for( int i = 0; i < tri->numVerts; i++ )
@@ -135,13 +136,9 @@ bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds )
 		for( int j = 0; j < 3; j++ )
 		{
 			if( clip[j] >= clip[3] )
-			{
 				pointFlags |= ( 1 << ( j * 2 + 0 ) );
-			}
 			else if( clip[j] <= -clip[3] )  	// FIXME: the D3D near clip plane is at zero instead of -1
-			{
 				pointFlags |= ( 1 << ( j * 2 + 1 ) );
-			}
 		}
 		
 		pointAnd &= pointFlags;

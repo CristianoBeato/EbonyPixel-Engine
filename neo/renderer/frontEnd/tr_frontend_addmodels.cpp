@@ -27,11 +27,12 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "renderer/tr_local.h"
 #include "renderer/models/Model_local.h"
+#include "renderer/models/internal/Model_skined.h"
 
 idCVar r_skipStaticShadows( "r_skipStaticShadows", "0", CVAR_RENDERER | CVAR_BOOL, "skip static shadows" );
 idCVar r_skipDynamicShadows( "r_skipDynamicShadows", "0", CVAR_RENDERER | CVAR_BOOL, "skip dynamic shadows" );
@@ -342,15 +343,15 @@ void R_SetupDrawSurfJoints( drawSurf_t* drawSurf, const srfTriangles_t* tri, con
 	}
 	// RB end
 	
-	idRenderModelStatic* model = tri->staticModelWithJoints;
-	assert( model->jointsInverted != NULL );
+	btRenderModelSkined* model = tri->staticModelWithJoints;
+	assert( model->m_jointsInverted != NULL );
 	
-	if( !vertexCache.CacheIsCurrent( model->jointsInvertedBuffer ) )
+	if( !vertexCache.CacheIsCurrent( model->m_jointsInvertedBuffer ) )
 	{
 		const int alignment = glConfig.uniformBufferOffsetAlignment;
-		model->jointsInvertedBuffer = vertexCache.AllocJoint( model->jointsInverted, ALIGN( model->numInvertedJoints * sizeof( idJointMat ), alignment ) );
+		model->m_jointsInvertedBuffer = vertexCache.AllocJoint( model->m_jointsInverted, ALIGN( model->m_numInvertedJoints * sizeof( idJointMat ), alignment ) );
 	}
-	drawSurf->jointCache = model->jointsInvertedBuffer;
+	drawSurf->jointCache = model->m_jointsInvertedBuffer;
 }
 
 /*
@@ -891,8 +892,8 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 									dynamicShadowParms->numIndexes = tri->numIndexes;
 									dynamicShadowParms->silEdges = tri->silEdges;
 									dynamicShadowParms->numSilEdges = tri->numSilEdges;
-									dynamicShadowParms->joints = gpuSkinned ? tri->staticModelWithJoints->jointsInverted : NULL;
-									dynamicShadowParms->numJoints = gpuSkinned ? tri->staticModelWithJoints->numInvertedJoints : 0;
+									dynamicShadowParms->joints = gpuSkinned ? tri->staticModelWithJoints->m_jointsInverted : NULL;
+									dynamicShadowParms->numJoints = gpuSkinned ? tri->staticModelWithJoints->m_numInvertedJoints : 0;
 									dynamicShadowParms->triangleBounds = tri->bounds;
 									dynamicShadowParms->triangleMVP = vEntity->mvp;
 									dynamicShadowParms->localLightOrigin = localLightOrigin;
@@ -945,17 +946,13 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 						// There will only be localSurfaces if the light casts shadows and
 						// there are surfaces with NOSELFSHADOW.
 						if( shader->Coverage() == MC_TRANSLUCENT )
-						{
 							lightDrawSurf->linkChain = &vLight->translucentInteractions;
-						}
+		
 						else if( !lightDef->parms.noShadows && shader->TestMaterialFlag( MF_NOSELFSHADOW ) )
-						{
 							lightDrawSurf->linkChain = &vLight->localInteractions;
-						}
 						else
-						{
 							lightDrawSurf->linkChain = &vLight->globalInteractions;
-						}
+
 						lightDrawSurf->nextOnLight = vEntity->drawSurfs;
 						vEntity->drawSurfs = lightDrawSurf;
 					}
@@ -968,9 +965,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 			
 #if 1
 			if( !shader->SurfaceCastsShadow() && !( r_useShadowMapping.GetBool() && r_forceShadowMapsOnAlphaTestedSurfaces.GetBool() && shader->Coverage() == MC_PERFORATED ) )
-			{
 				continue;
-			}
 #else
 			// Steel Storm 2 behaviour - this destroys many alpha tested shadows in vanilla BFG
 			
@@ -1012,13 +1007,10 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 #endif
 			
 			if( !lightDef->LightCastsShadows() )
-			{
 				continue;
-			}
+
 			if( tri->silEdges == NULL )
-			{
 				continue;		// can happen for beam models (shouldn't use a shadow casting material, though...)
-			}
 			
 			// if the static shadow does not have any shadows
 			if( surfInter != NULL && surfInter->numShadowIndexes == 0 )
@@ -1029,16 +1021,11 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 			
 			// some entities, like view weapons, don't cast any shadows
 			if( entityDef->parms.noShadow )
-			{
 				continue;
-			}
 			
 			// No shadow if it's suppressed for this light.
 			if( entityDef->parms.suppressShadowInLightID && entityDef->parms.suppressShadowInLightID == lightDef->parms.lightId )
-			{
 				continue;
-			}
-			
 			
 			// RB begin
 			if( r_useShadowMapping.GetBool() )
@@ -1098,9 +1085,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 						//shadowDrawSurf->shaderRegisters = baseDrawSurf->shaderRegisters;
 						
 						if( shader->Coverage() == MC_PERFORATED )
-						{
 							R_SetupDrawSurfShader( shadowDrawSurf, shader, renderEntity );
-						}
 						
 						R_SetupDrawSurfJoints( shadowDrawSurf, tri, shader );
 						
@@ -1220,8 +1205,8 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 					dynamicShadowParms->numIndexes = tri->numIndexes;
 					dynamicShadowParms->silEdges = tri->silEdges;
 					dynamicShadowParms->numSilEdges = tri->numSilEdges;
-					dynamicShadowParms->joints = gpuSkinned ? tri->staticModelWithJoints->jointsInverted : NULL;
-					dynamicShadowParms->numJoints = gpuSkinned ? tri->staticModelWithJoints->numInvertedJoints : 0;
+					dynamicShadowParms->joints = gpuSkinned ? tri->staticModelWithJoints->m_jointsInverted : NULL;
+					dynamicShadowParms->numJoints = gpuSkinned ? tri->staticModelWithJoints->m_numInvertedJoints : 0;
 					dynamicShadowParms->triangleBounds = tri->bounds;
 					dynamicShadowParms->triangleMVP = vEntity->mvp;
 					dynamicShadowParms->localLightOrigin = localLightOrigin;

@@ -93,8 +93,20 @@ typedef struct aseModel_s
 	idList<aseObject_t*, TAG_MODEL>	objects;
 } aseModel_t;
 
+class btRenderModelASE : public idRenderModelStatic
+{
+public:
+	btRenderModelASE(void);
+	virtual ~btRenderModelASE(void);
 
-aseModel_t* ASE_Load( const char* fileName );
-void		ASE_Free( aseModel_t* ase );
+protected:
+	virtual bool	Load(void) override;
+
+private:
+	bool			ConvertASEToModelSurfaces(const struct aseModel_s* ase);
+	aseModel_t*		ASE_Load( const char* fileName );
+	void			ASE_Free( aseModel_t* ase );
+
+};
 
 #endif /* !__MODEL_ASE_H__ */

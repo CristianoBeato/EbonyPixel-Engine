@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MODEL_MD3_H__
 #define __MODEL_MD3_H__
 
+#include "renderer/models/internal/Model_skined.h"
+
 /*
 ========================================================================
 
@@ -150,5 +152,31 @@ typedef struct md3Header_s
 	
 	int			ofsEnd;				// end of file
 } md3Header_t;
+
+/*
+===============================================================================
+
+MD3 animated model
+
+===============================================================================
+*/
+class idRenderModelMD3 : public btRenderModelSkined
+{
+public:
+	virtual void				InitFromFile(const char* fileName);
+	virtual bool				SupportsBinaryModel(void){ return false; }
+	virtual dynamicModel_t		IsDynamicModel(void) const;
+	virtual idRenderModel* 		InstantiateDynamicModel(const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel);
+	virtual idBounds			Bounds(const struct renderEntity_s* ent) const;
+
+private:
+	int							index;			// model = tr.models[model->index]
+	int							dataSize;		// just for listing purposes
+	struct md3Header_s* 		md3;			// only if type == MOD_MESH
+	int							numLods;
+
+	void						LerpMeshVertexes(srfTriangles_t* tri, const struct md3Surface_s* surf, const float backlerp, const int frame, const int oldframe) const;
+};
+
 
 #endif /* !__MODEL_MD3_H__ */

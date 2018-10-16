@@ -31,7 +31,8 @@ If you have questions concerning this license or the applicable additional terms
 
 
 #include "game/Game_local.h"
-#include "renderer/models/Model_md5.h"
+#include "renderer/models/internal/Model_skined.h"
+#include "renderer/models/loaders/Model_md5.h"
 
 idCVar binaryLoadAnim( "binaryLoadAnim", "1", 0, "enable binary load/write of idMD5Anim" );
 
@@ -202,9 +203,7 @@ bool idMD5Anim::LoadAnim( const char* filename )
 	}
 	
 	if( !parser.LoadFile( filename ) )
-	{
 		return false;
-	}
 	
 	name = filename;
 	
@@ -213,9 +212,7 @@ bool idMD5Anim::LoadAnim( const char* filename )
 	parser.ExpectTokenString( MD5_VERSION_STRING );
 	int version = parser.ParseInt();
 	if( version != MD5_VERSION )
-	{
 		parser.Error( "Invalid version %d.  Should be version %d\n", version, MD5_VERSION );
-	}
 	
 	// skip the commandline
 	parser.ExpectTokenString( "commandline" );
@@ -225,33 +222,26 @@ bool idMD5Anim::LoadAnim( const char* filename )
 	parser.ExpectTokenString( "numFrames" );
 	numFrames = parser.ParseInt();
 	if( numFrames <= 0 )
-	{
 		parser.Error( "Invalid number of frames: %d", numFrames );
-	}
 	
 	// parse num joints
 	parser.ExpectTokenString( "numJoints" );
 	numJoints = parser.ParseInt();
 	if( numJoints <= 0 )
-	{
 		parser.Error( "Invalid number of joints: %d", numJoints );
-	}
 	
 	// parse frame rate
 	parser.ExpectTokenString( "frameRate" );
 	frameRate = parser.ParseInt();
 	if( frameRate < 0 )
-	{
 		parser.Error( "Invalid frame rate: %d", frameRate );
-	}
 	
 	// parse number of animated components
 	parser.ExpectTokenString( "numAnimatedComponents" );
 	numAnimatedComponents = parser.ParseInt();
 	if( ( numAnimatedComponents < 0 ) || ( numAnimatedComponents > numJoints * 6 ) )
-	{
 		parser.Error( "Invalid number of animated components: %d", numAnimatedComponents );
-	}
+	
 	
 	// parse the hierarchy
 	jointInfo.SetGranularity( 1 );
@@ -1087,25 +1077,33 @@ void idMD5Anim::CheckModelHierarchy( const idRenderModel* model ) const
 		}
 	}
 
-//Beato Begin
-	const btGameJoint* modelJoints = model->GetJoints();
-//Beato End
+//Beato Begin: implement a list interator
+#if 0
+	const btGameJoint** modelJoints = (const btGameJoint**)model->GetJoints().Ptr();
 
 	for( int i = 0; i < jointInfo.Num(); i++ )
 	{
+		btGameJoint joint = *modelJoints[i];
+#else
+	int i = 0;
+	for (btGameJoint joint : model->GetJoints())
+	{
+#endif
 		int jointNum = jointInfo[ i ].nameIndex;
-		if( modelJoints[ i ].name != animationLib.JointName( jointNum ) )
+		if(joint.Name() != animationLib.JointName( jointNum ) )
 			gameLocal.Error( "Model '%s''s joint names don't match anim '%s''s", model->Name(), name.c_str() );
 
 		int parent;
-		if( modelJoints[ i ].parent )
-			parent = modelJoints[ i ].parent - modelJoints;
-		else
-			parent = -1;
+
+		//get parent id, if don't have return -1 (INVALID_JOINT)
+		if (joint.Parent())
+			parent = joint.getParentId();
 
 		if( parent != jointInfo[ i ].parentNum )
 			gameLocal.Error( "Model '%s' has different joint hierarchy than anim '%s'", model->Name(), name.c_str() );
+		i++;
 	}
+//Beato End
 }
 
 /***********************************************************************
@@ -1168,9 +1166,7 @@ idMD5Anim* idAnimManager::GetAnim( const char* name )
 		
 		filename.ExtractFileExtension( extension );
 		if( extension != MD5_ANIM_EXT )
-		{
 			return NULL;
-		}
 		
 		anim = new( TAG_ANIM ) idMD5Anim();
 		if( !anim->LoadAnim( filename ) )

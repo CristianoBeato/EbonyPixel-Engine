@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MODEL_MA_H__
 #define __MODEL_MA_H__
 
+#include "renderer/models/internal/Model_static.h"
+
 /*
 ===============================================================================
 
@@ -120,7 +122,6 @@ typedef struct
 	maMesh_t				mesh;
 } maObject_t;
 
-
 typedef struct
 {
 	char					name[128];
@@ -149,7 +150,19 @@ typedef struct maModel_s
 	
 } maModel_t;
 
-maModel_t*	MA_Load( const char* fileName );
-void		MA_Free( maModel_t* ma );
+class btRenderModelMA : public idRenderModelStatic
+{
+public:
+	btRenderModelMA(void);
+	~btRenderModelMA(void);
+
+protected:
+	virtual bool	Load(void) override;
+
+private:
+	bool			ConvertMAToModelSurfaces(const struct maModel_s* ma);
+	maModel_t*		MA_Load( const char* fileName );
+	void			MA_Free( maModel_t* ma );
+};
 
 #endif /* !__MODEL_MA_H__ */

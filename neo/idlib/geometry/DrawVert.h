@@ -116,8 +116,9 @@ class idDrawVert
 {
 	friend class idSwap;
 	friend class idShadowVertSkinned;
+	friend class idRenderModelLocal;
 	friend class idRenderModelStatic;
-	
+
 	friend void TransformVertsAndTangents( idDrawVert* targetVerts, const int numVerts, const idDrawVert* baseVerts, const idJointMat* joints );
 	
 public:
@@ -128,37 +129,38 @@ private:
 	byte				normal[4];		// 4 bytes
 	byte				tangent[4];		// 4 bytes -- [3] is texture polarity sign
 public:
+	//Beato TODO: change this to define weights and indexes as definetive, whe no more will use mesh colors
 	byte				color[4];		// 4 bytes
 	byte				color2[4];		// 4 bytes -- weights for skinning
 	
 	float				operator[]( const int index ) const;
 	float& 				operator[]( const int index );
 	
-	void				Clear();
+	void				Clear(void);
 	
-	const idVec3		GetNormal() const;
-	const idVec3		GetNormalRaw() const;		// not re-normalized for renderbump
+	const idVec3		GetNormal(void) const;
+	const idVec3		GetNormalRaw(void) const;		// not re-normalized for renderbump
 	
 	// must be normalized already!
 	void				SetNormal( float x, float y, float z );
 	void				SetNormal( const idVec3& n );
 	
-	const idVec3		GetTangent() const;
-	const idVec3		GetTangentRaw() const;		// not re-normalized for renderbump
+	const idVec3		GetTangent(void) const;
+	const idVec3		GetTangentRaw(void) const;		// not re-normalized for renderbump
 	
 	// must be normalized already!
 	void				SetTangent( float x, float y, float z );
 	void				SetTangent( const idVec3& t );
 	
 	// derived from normal, tangent, and tangent flag
-	const idVec3 		GetBiTangent() const;
-	const idVec3 		GetBiTangentRaw() const;	// not re-normalized for renderbump
+	const idVec3 		GetBiTangent(void) const;
+	const idVec3 		GetBiTangentRaw(void) const;	// not re-normalized for renderbump
 	
 	void				SetBiTangent( float x, float y, float z );
 	ID_INLINE void		SetBiTangent( const idVec3& t );
 	
-	float				GetBiTangentSign() const;
-	byte				GetBiTangentSignBit() const;
+	float				GetBiTangentSign(void) const;
+	byte				GetBiTangentSignBit(void) const;
 	
 	void				SetTexCoordNative( const halfFloat_t s, const halfFloat_t t );
 	void				SetTexCoord( const idVec2& st );
@@ -168,8 +170,8 @@ public:
 	const idVec2		GetTexCoord() const;
 	const float			GetTexCoordS() const;
 	const float			GetTexCoordT() const;
-	const halfFloat_t	GetTexCoordNativeS() const;
-	const halfFloat_t	GetTexCoordNativeT() const;
+	const halfFloat_t	GetTexCoordNativeS(void) const;
+	const halfFloat_t	GetTexCoordNativeT(void) const;
 	
 	// either 1.0f or -1.0f
 	ID_INLINE void		SetBiTangentSign( float sign );
@@ -180,12 +182,12 @@ public:
 	
 	void				SetColor( dword color );
 	void				SetNativeOrderColor( dword color );
-	dword				GetColor() const;
+	dword				GetColor(void) const;
 	
 	void				SetColor2( dword color );
 	void				SetNativeOrderColor2( dword color );
-	void				ClearColor2();
-	dword				GetColor2() const;
+	void				ClearColor2(void);
+	dword				GetColor2(void) const;
 	
 	static idDrawVert	GetSkinnedDrawVert( const idDrawVert& vert, const idJointMat* joints );
 	static idVec3		GetSkinnedDrawVertPosition( const idDrawVert& vert, const idJointMat* joints );
