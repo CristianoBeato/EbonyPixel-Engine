@@ -123,18 +123,21 @@ If you don't want to use git, you can download the source as a zip file at
 		3. Generate the VC13 projects using CMake by doubleclicking a matching configuration .bat file in the neo/ folder.
 
 	__________________________________________
-	5.2)WITH VISUAL C++ 2013 EXPRESS EDITION
+	5.2)CODE BLOCKS/MINGW/TDM-GCC
 	__________________________________________
 	
 		1. Download and install the MingW/Code Blocks
 			MingW - https://sourceforge.net/projects/mingw/files/latest/download?source=files
+			or
+			https://sourceforge.net/projects/tdm-gcc/files/TDM-GCC%20Installer
+			
 			MingW/Code Blocks - http://www.codeblocks.org/downloads/26
 		
 		2. dowload the needed libs
 			SDL2 development libraries - https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-2.0.14-mingw.tar.gz
 			SDL2_TTF development libraries - https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-2.0.14-mingw.tar.gz
 		
-		3. Generate the MingW/Code Blocks using CMake by doubleclicking a matching configuration .bat file in the neo/ folder.
+		3. Generate the MingW/Code Blocks/TDM using CMake by doubleclicking a matching configuration .bat file in the neo/ folder.
 		
 =========================================
 6) COMPILING ON GNU/LINUX
