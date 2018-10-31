@@ -32,6 +32,17 @@ GNU General Public License which accompanied the Elbony Pixel Source Code.
 #include "renderer/tr_local.h"
 #include "renderer/models/Model_local.h"
 
+idHashTableT<const char *, char *> enames;
+
+const char *getnamekey(const char *name)
+{
+	char **exists = enames.access(name);
+	if (exists) return *exists;
+	char *key = newstring(name);
+	enames[key] = key;
+	return key;
+}
+
 idRenderModelIQM::idRenderModelIQM(void) : btRenderModelSkined()
 {
 }
@@ -48,91 +59,264 @@ void idRenderModelIQM::InitFromFile(const char * fileName)
 
 void idRenderModelIQM::LoadModel(void)
 {
-	int				size;
-	void*			buffer;
+	char* buf;
+	fileSystem->ReadFile(m_name, (void**)&buf, &m_timeStamp);
+	if (!buf)
+		return ;
 
-	size = fileSystem->ReadFile(m_name.c_str(), &buffer, NULL);
-	if (!size || size < 0)
-		return;
-
-	iqmHdr = (iqmheader*)buffer;
-
-	//check header magic
-	if (strcmp(iqmHdr->magic, IQM_MAGIC) != 0)
+	const char *curmesh = getnamekey(""), *curmaterial = getnamekey("");
+	bool needmesh = true;
+	int fmoffset = 0;
+	char buf[512];
+	if (!f->getline(buf, sizeof(buf))) return;
+	if (!strchr(buf, '#') || strstr(buf, "# Inter-Quake Export") != strchr(buf, '#')) return false;
+	while (f->getline(buf, sizeof(buf)))
 	{
-		common->Warning("idRenderModelIQM::LoadModel(%s): can't load, not a valid IQM model", m_name.c_str());
-	
-		return;
-	}
+		char *c = buf;
+		while (isspace(*c)) ++c;
+		if (isalpha(c[0]) && isalnum(c[1]) && (!c[2] || isspace(c[2]))) switch (*c++)
+		{
+		case 'v':
+			switch (*c++)
+			{
+			case 'p': epositions.add(parseattribs4(c, Vec4(0, 0, 0, 1))); continue;
+			case 't': etexcoords.add(parseattribs4(c)); continue;
+			case 'n': enormals.add(parseattribs3(c)); continue;
+			case 'x':
+			{
+				Vec4 tangent(parseattribs3(c), 0);
+				Vec3 bitangent(0, 0, 0);
+				bitangent.x = parseattrib(c);
+				if (maybeparseattrib(c, bitangent.y))
+				{
+					bitangent.z = parseattrib(c);
+					ebitangents.add(bitangent);
+				}
+				else tangent.w = bitangent.x;
+				etangents.add(tangent);
+				continue;
+			}
+			case 'b': eblends.add(parseblends(c)); continue;
+			case 'c': ecolors.add(parseattribs4(c, Vec4(0, 0, 0, 1))); continue;
+			case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+			{
+				int n = c[-1] - '0';
+				ecustom[n].add(parseattribs4(c));
+				continue;
+			}
+			case 's':
+				parseindex(c, esmoothindexes.add());
+				continue;
+			}
+			break;
+		case 'p':
+		{
+			transform t;
+			switch (*c++)
+			{
+			case 'q':
+			{
+				t.pos = parseattribs3(c);
+				loopk(3) t.orient[k] = parseattrib(c);
 
-	//check the model version
-	LL(iqmHdr->version);
-	if (iqmHdr->version != IQM_VERSION)
-	{
-		common->Warning("idRenderModelIQM::LoadModel(%s): has wrong version (%i should be %i)", m_name.c_str(), iqmHdr->version, IQM_VERSION);
-		return;
-	}
-
-	LL(iqmHdr->filesize);
-	if (iqmHdr->filesize > (16 << 20))
-	{
-		common->Warning("idRenderModelIQM::LoadModel(%s): invalid file size (%i don't load files bigger than %i)", 
-			m_name.c_str(), iqmHdr->filesize, (16 << 20));
-		return;
-	}
-
-	//set the true headers values
-	LL(iqmHdr->flags);
-	LL(iqmHdr->num_text);
-	LL(iqmHdr->ofs_text);
-	LL(iqmHdr->num_meshes);
-	LL(iqmHdr->ofs_meshes);
-	LL(iqmHdr->num_vertexarrays);
-	LL(iqmHdr->num_vertexes);
-	LL(iqmHdr->ofs_vertexarrays);
-	LL(iqmHdr->num_triangles);
-	LL(iqmHdr->ofs_triangles);
-	LL(iqmHdr->ofs_adjacency);
-	LL(iqmHdr->num_joints);
-	LL(iqmHdr->ofs_joints);
-	LL(iqmHdr->num_poses);
-	LL(iqmHdr->ofs_poses);
-	LL(iqmHdr->num_anims);
-	LL(iqmHdr->ofs_anims);
-	LL(iqmHdr->num_frames);
-	LL(iqmHdr->num_framechannels);
-	LL(iqmHdr->ofs_frames);
-	LL(iqmHdr->ofs_bounds);
-	LL(iqmHdr->num_comment);
-	LL(iqmHdr->ofs_comment);
-	LL(iqmHdr->num_extensions);
-	LL(iqmHdr->ofs_extensions);
-
-	if (iqmHdr->num_joints > 0 && !loadJoints((byte*)buffer))
-	{
-		common->Warning("idRenderModelIQM::LoadModel(%s): can't load, model don't have joints", m_name.c_str());
-		return;
-	}
-
-	if (iqmHdr->num_vertexarrays > 0 && !loadVerterxArray((byte*)buffer))
-	{
-		common->Warning("idRenderModelIQM::LoadModel(%s): can't load, model don't have vertex arrays", m_name.c_str());
-		return;
-	}
-
-	if (iqmHdr->num_meshes > 0 && !loadMeshes((byte*)buffer))
-	{
-		common->Warning("idRenderModelIQM::LoadModel(%s): can't load, model don't have meshes", m_name.c_str());
-		return;
-	}
+				t.orient.restorew();
+				double w = parseattrib(c, t.orient.w);
+				if (w != t.orient.w)
+				{
+					t.orient.w = w;
+					t.orient.normalize();
+					//        double x2 = f.orient.x*f.orient.x, y2 = f.orient.y*f.orient.y, z2 = f.orient.z*f.orient.z, w2 = f.orient.w*f.orient.w, s2 = x2 + y2 + z2 + w2;
+					//        f.orient.x = keepsign(f.orient.x, sqrt(max(1.0 - (w2 + y2 + z2) / s2, 0.0)));
+					//        f.orient.y = keepsign(f.orient.y, sqrt(max(1.0 - (w2 + x2 + z2) / s2, 0.0)));
+					//        f.orient.z = keepsign(f.orient.z, sqrt(max(1.0 - (w2 + x2 + y2) / s2, 0.0)));
+					//        f.orient.w = keepsign(f.orient.w, sqrt(max(1.0 - (x2 + y2 + z2) / s2, 0.0)));
+				}
+				if (t.orient.w > 0) t.orient.flip();
+				t.scale = parseattribs3(c, Vec3(1, 1, 1));
+				eposes.add(t);
+				continue;
+			}
+			case 'm':
+			{
+				t.pos = parseattribs3(c);
+				Matrix3x3 m;
+				m.a = parseattribs3(c);
+				m.b = parseattribs3(c);
+				m.c = parseattribs3(c);
+				Vec3 mscale(Vec3(m.a.x, m.b.x, m.c.x).magnitude(), Vec3(m.a.y, m.b.y, m.c.y).magnitude(), Vec3(m.a.z, m.b.z, m.c.z).magnitude());
+				// check determinant for sign of scaling
+				if (m.determinant() < 0) mscale = -mscale;
+				m.a /= mscale;
+				m.b /= mscale;
+				m.c /= mscale;
+				t.orient = Quat(m);
+				if (t.orient.w > 0) t.orient.flip();
+				t.scale = parseattribs3(c, Vec3(1, 1, 1)) * mscale;
+				eposes.add(t);
+				continue;
+			}
+			case 'a':
+			{
+				t.pos = parseattribs3(c);
+				Vec3 rot = parseattribs3(c);
+				t.orient = Quat::fromangles(rot);
+				t.scale = parseattribs3(c, Vec3(1, 1, 1));
+				eposes.add(t);
+				continue;
+			}
+			}
+			break;
+		}
+		case 'f':
+			switch (*c++)
+			{
+			case 'a':
+			{
+				int i1 = 0, i2 = 0, i3 = 0;
+				if (!parseindex(c, i1) || !parseindex(c, i2)) continue;
+				if (needmesh)
+				{
+					emeshes.add(emesh(curmesh, curmaterial, etriangles.length()));
+					needmesh = false;
+				}
+				if (i1 < 0) i1 = max(epositions.length() + i1, 0);
+				if (i2 < 0) i2 = max(epositions.length() + i2, 0);
+				while (parseindex(c, i3))
+				{
+					if (i3 < 0) i3 = max(epositions.length() + i3, 0);
+					esmoothgroups.last().flags |= esmoothgroup::F_USED;
+					etriangles.add(etriangle(i1, i2, i3, esmoothgroups.length() - 1));
+					i2 = i3;
+				}
+				continue;
+			}
+			case 'm':
+			{
+				int i1 = 0, i2 = 0, i3 = 0;
+				if (!parseindex(c, i1) || !parseindex(c, i2)) continue;
+				if (needmesh)
+				{
+					emeshes.add(emesh(curmesh, curmaterial, etriangles.length()));
+					needmesh = false;
+				}
+				i1 = i1 < 0 ? max(epositions.length() + i1, 0) : (fmoffset + i1);
+				i2 = i2 < 0 ? max(epositions.length() + i2, 0) : (fmoffset + i2);
+				while (parseindex(c, i3))
+				{
+					i3 = i3 < 0 ? max(epositions.length() + i3, 0) : (fmoffset + i3);
+					esmoothgroups.last().flags |= esmoothgroup::F_USED;
+					etriangles.add(etriangle(i1, i2, i3, esmoothgroups.length() - 1));
+					i2 = i3;
+				}
+				continue;
+			}
+			case 's':
+			{
+				int i1 = 0, i2 = 0, i3 = 0;
+				uchar flags = 0;
+				if (!parseindex(c, i1) || !parseindex(c, i2) || !parseindex(c, i3)) continue;
+				flags |= clamp(i1, 0, 1);
+				flags |= clamp(i2, 0, 1) << 1;
+				flags |= clamp(i3, 0, 1) << 2;
+				esmoothgroups.last().flags |= esmoothgroup::F_USED;
+				while (parseindex(c, i3))
+				{
+					esmoothedges.add(flags | 4);
+					flags = 1 | ((flags & 4) >> 1) | (clamp(i3, 0, 1) << 2);
+				}
+				esmoothedges.add(flags);
+				continue;
+			}
+			}
+			break;
+		}
+		char *args = c;
+		while (*args && !isspace(*args)) args++;
+		if (!strncmp(c, "smoothgroup", max(int(args - c), 11)))
+		{
+			if (esmoothgroups.last().flags & esmoothgroup::F_USED) esmoothgroups.dup();
+			parseindex(args, esmoothgroups.last().key);
+		}
+		else if (!strncmp(c, "smoothangle", max(int(args - c), 11)))
+		{
+			if (esmoothgroups.last().flags & esmoothgroup::F_USED) esmoothgroups.dup();
+			double angle = parseattrib(args, 0);
+			esmoothgroups.last().angle = fabs(cos(clamp(angle, -180.0, 180.0) * M_PI / 180));
+		}
+		else if (!strncmp(c, "smoothuv", max(int(args - c), 8)))
+		{
+			if (esmoothgroups.last().flags & esmoothgroup::F_USED) esmoothgroups.dup();
+			int val = 1;
+			if (parseindex(args, val) && val <= 0) esmoothgroups.last().flags &= ~esmoothgroup::F_UVSMOOTH;
+			else esmoothgroups.last().flags |= esmoothgroup::F_UVSMOOTH;
+		}
+		else if (!strncmp(c, "mesh", max(int(args - c), 4)))
+		{
+			curmesh = getnamekey(trimname(args));
+			if (emeshes.empty() || emeshes.last().name != curmesh) needmesh = true;
+			fmoffset = epositions.length();
 
 #if 0
-	if (hdr->num_anims > 0 && !loadiqmanims(filename, hdr, buf))
-		return;
+			emesh &m = emeshes.add();
+			m.firsttri = etriangles.length();
+			fmoffset = epositions.length();
+			parsename(args, m.name);
 #endif
-
-
-
+		}
+		else if (!strncmp(c, "material", max(int(args - c), 8)))
+		{
+			curmaterial = getnamekey(trimname(args));
+			if (emeshes.empty() || emeshes.last().material != curmaterial) needmesh = true;
+			//            if(emeshes.length()) parsename(c, emeshes.last().material);
+		}
+		else if (!strncmp(c, "joint", max(int(args - c), 5)))
+		{
+			ejoint &j = ejoints.add();
+			j.name = getnamekey(trimname(args));
+			parseindex(args, j.parent);
+		}
+		else if (!strncmp(c, "vertexarray", max(int(args - c), 11)))
+		{
+			evarray &va = evarrays.add();
+			va.type = findvertexarraytype(trimname(args));
+			va.format = findvertexarrayformat(trimname(args));
+			va.size = strtol(args, &args, 10);
+			copystring(va.name, trimname(args));
+		}
+		else if (!strncmp(c, "animation", max(int(args - c), 9)))
+		{
+			eanim &a = eanims.add();
+			a.name = getnamekey(trimname(args));
+			a.startframe = eframes.length();
+			if (!eframes.length() || eframes.last() != eposes.length()) eframes.add(eposes.length());
+		}
+		else if (!strncmp(c, "frame", max(int(args - c), 5)))
+		{
+			if (eanims.length() && eframes.length() && eframes.last() != eposes.length()) eframes.add(eposes.length());
+		}
+		else if (!strncmp(c, "framerate", max(int(args - c), 9)))
+		{
+			if (eanims.length())
+			{
+				double fps = parseattrib(args);
+				eanims.last().fps = max(fps, 0.0);
+			}
+		}
+		else if (!strncmp(c, "loop", max(int(args - c), 4)))
+		{
+			if (eanims.length()) eanims.last().flags |= IQM_LOOP;
+		}
+		else if (!strncmp(c, "comment", max(int(args - c), 7)))
+		{
+			if (commentdata.length()) break;
+			for (;;)
+			{
+				int len = f->read(commentdata.reserve(1024), 1024);
+				commentdata.advance(len);
+				if (len < 1024) { commentdata.add('\0'); break; }
+			}
+		}
+	}
 }
 
 bool idRenderModelIQM::loadJoints(const byte * buff)
@@ -440,7 +624,90 @@ bool idRenderModelIQM::loadMeshes(const byte * buff)
 #if 1
 bool idRenderModelIQM::LoadBinaryModel(idFile * file, const ID_TIME_T sourceTimeStamp)
 {
-	return false;
+	int				size;
+	void*			buffer;
+
+	size = fileSystem->ReadFile(m_name.c_str(), &buffer, NULL);
+	if (!size || size < 0)
+		return false;
+
+	iqmHdr = (iqmheader*)buffer;
+
+	//check header magic
+	if (strcmp(iqmHdr->magic, IQM_MAGIC) != 0)
+	{
+		common->Warning("idRenderModelIQM::LoadModel(%s): can't load, not a valid IQM model", m_name.c_str());
+
+		return false;
+	}
+
+	//check the model version
+	LL(iqmHdr->version);
+	if (iqmHdr->version != IQM_VERSION)
+	{
+		common->Warning("idRenderModelIQM::LoadModel(%s): has wrong version (%i should be %i)", m_name.c_str(), iqmHdr->version, IQM_VERSION);
+		return false;
+	}
+
+	LL(iqmHdr->filesize);
+	if (iqmHdr->filesize > (16 << 20))
+	{
+		common->Warning("idRenderModelIQM::LoadModel(%s): invalid file size (%i don't load files bigger than %i)",
+			m_name.c_str(), iqmHdr->filesize, (16 << 20));
+		return false;
+	}
+
+	//set the true headers values
+	LL(iqmHdr->flags);
+	LL(iqmHdr->num_text);
+	LL(iqmHdr->ofs_text);
+	LL(iqmHdr->num_meshes);
+	LL(iqmHdr->ofs_meshes);
+	LL(iqmHdr->num_vertexarrays);
+	LL(iqmHdr->num_vertexes);
+	LL(iqmHdr->ofs_vertexarrays);
+	LL(iqmHdr->num_triangles);
+	LL(iqmHdr->ofs_triangles);
+	LL(iqmHdr->ofs_adjacency);
+	LL(iqmHdr->num_joints);
+	LL(iqmHdr->ofs_joints);
+	LL(iqmHdr->num_poses);
+	LL(iqmHdr->ofs_poses);
+	LL(iqmHdr->num_anims);
+	LL(iqmHdr->ofs_anims);
+	LL(iqmHdr->num_frames);
+	LL(iqmHdr->num_framechannels);
+	LL(iqmHdr->ofs_frames);
+	LL(iqmHdr->ofs_bounds);
+	LL(iqmHdr->num_comment);
+	LL(iqmHdr->ofs_comment);
+	LL(iqmHdr->num_extensions);
+	LL(iqmHdr->ofs_extensions);
+
+	if (iqmHdr->num_joints > 0 && !loadJoints((byte*)buffer))
+	{
+		common->Warning("idRenderModelIQM::LoadModel(%s): can't load, model don't have joints", m_name.c_str());
+		return false;
+	}
+
+	if (iqmHdr->num_vertexarrays > 0 && !loadVerterxArray((byte*)buffer))
+	{
+		common->Warning("idRenderModelIQM::LoadModel(%s): can't load, model don't have vertex arrays", m_name.c_str());
+		return false;
+	}
+
+	if (iqmHdr->num_meshes > 0 && !loadMeshes((byte*)buffer))
+	{
+		common->Warning("idRenderModelIQM::LoadModel(%s): can't load, model don't have meshes", m_name.c_str());
+		return false;
+	}
+
+#if 0
+	if (hdr->num_anims > 0 && !loadiqmanims(filename, hdr, buf))
+		return false;
+#endif
+
+	return true;
 }
 
 void idRenderModelIQM::WriteBinaryModel(idFile * file, ID_TIME_T * _timeStamp) const

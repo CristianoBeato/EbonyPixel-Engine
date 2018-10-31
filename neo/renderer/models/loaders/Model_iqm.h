@@ -152,6 +152,18 @@ struct iqmbounds
 ==================================================================
 */
 
+class btIqmJoint : public btGameJoint
+{
+public:
+	btIqmJoint(void) {};
+	~btIqmJoint(void) {};
+
+	unsigned int	m_parentId;
+	idVec3			m_position;
+	idQuat			m_orient;
+};
+
+
 class btVertexWheight
 {
 public:
@@ -171,7 +183,6 @@ private:
 	idList<float>	m_weights;
 	idList<byte>	m_indexes;
 };
-
 
 class btIQMmodel
 {
@@ -230,6 +241,7 @@ public:
 	virtual int					NearestJoint(int surfaceNum, int a, int b, int c) const;
 
 private:
+	idList<btIqmJoint>						m_jointList;
 	friend class btIqmMesh;
 	
 	idStr									m_modelPath;

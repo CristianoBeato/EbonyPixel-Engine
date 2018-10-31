@@ -368,7 +368,7 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 	else if( extension.Icmp( MD5_MESH_EXT ) == 0 )
 		model = new( TAG_MODEL ) idRenderModelMD5;
 //Beato Begin: Suport for IQM, Internal Quake Model
-#if 0
+#if 1
 	else if (extension.Icmp(IQM_MESH_EXT) == 0)
 		model = new(TAG_MODEL) idRenderModelIQM;
 #endif
