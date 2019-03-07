@@ -50,21 +50,10 @@ Recommended system requirements:
 2) GENERAL NOTES
 =========================================
 
-This release does not contain any game data, the game data is still
-covered by the original EULA and must be obeyed as usual.
-
-You must patch the game to the latest version.
-
-Note that Doom 3 BFG Edition is available from the Steam store at
-http://store.steampowered.com/app/208200/
-
-
-Steam:
-------
-The Doom 3 BFG Edition GPL Source Code release does not include functionality for integrating with 
-Steam.  This includes roaming profiles, achievements, leaderboards, matchmaking, the overlay, or
-any other Steam features.
-
+This release does not contain any game data, the game data and may
+have some incompatibilities with the original content of Doom 3 BFG,
+you can implement your own content, or use content available to mod
+communities over the internet.
 
 Bink:
 -----
@@ -72,17 +61,12 @@ The Ebony Pixel engine Code release does not include functionality for rendering
 
 Back End Rendering of Stencil Shadows:
 --------------------------------------
-
-The Doom 3 BFG Edition GPL Source Code release does not include functionality enabling rendering
+The Ebony Pixel engine Source Code release does not include functionality enabling rendering
 of stencil shadows via the "depth fail" method, a functionality commonly known as "Carmack's Reverse".
-
-
 
 =========================================
 3) LICENSE
 =========================================
-
-
 See COPYING.txt for the GNU GENERAL PUBLIC LICENSE
 ADDITIONAL TERMS:  The Ebony Pixel Engine Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU GPL which accompanied the Doom 3 BFG Edition GPL Source Code.  If not, please request a copy in writing from id Software at id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
@@ -90,15 +74,12 @@ ADDITIONAL TERMS:  The Ebony Pixel Engine Source Code is also subject to certain
 =========================================
 4) GETTING THE SOURCE CODE
 =========================================
-
 This project's GitHub.net Git repository can be checked out through Git with the following instruction set: 
 
 	> git clone https://github.com/CristianoBeato/EbonyPixel-Engine.git
 
 If you don't want to use git, you can download the source as a zip file at
 	https://codeload.github.com/CristianoBeato/EbonyPixel-Engine/zip/master
-
-
 
 =========================================
 5) COMPILING ON WIN32
@@ -228,33 +209,13 @@ __________________________________________
 
 - OS X support - TO FIX
 
+- SDL cross platform implementations
+
 - OpenAL Soft sound backend primarily developed for Linux but works on Windows as well
 
 - PNG image support
 
-- Soft shadows using PCF hardware shadow mapping
-
-	The implementation uses sampler2DArrayShadow and PCF which usually
-	requires Direct3D 10.1 however it is in the OpenGL 3.2 core so it should
-	be widely supported.
-	All 3 light types are supported which means parallel lights (sun) use
-	scene independent cascaded shadow mapping.
-	The implementation is very fast with single taps (400 fps average per
-	scene on a GTX 660 ti OC) however I defaulted it to 12 taps using a Poisson disc algorithm so the shadows look
-	really good which should give you stable 100 fps on todays hardware (2014).
-
-- Changed light interaction shaders to use Half-Lambert lighting like in Half-Life 2 to 
-	make the game less dark. https://developer.valvesoftware.com/wiki/Half_Lambert
-
-- True 64 bit HDR lighting with adaptive tone mapping and gamma-correct rendering in linear RGB space
-
-- Enhanced Subpixel Morphological Antialiasing
-	For more information see "Anti-Aliasing Methods in CryENGINE 3" and the docs at http://www.iryoku.com/smaa/
-
-- Filmic post process effects like Technicolor color grading and film grain
-
-- Additional ambient render pass to make the game less dark similar to the Quake 4 r_forceAmbient technique
-
+- Endian Swaping by SDL2 
 ___________________________________________________
 
 9) CONSOLE VARIABLES
